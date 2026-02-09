@@ -1,0 +1,39 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "media-tracker",
+  "version": "0.1.0",
+  "identifier": "com.archbtw.media-tracker",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "devUrl": "http://localhost:6969",
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "media-tracker",
+        "width": 2560,
+        "height": 1440,
+        "decorations": false
+      }
+    ],
+    "security": {
+      "csp": null,
+      "assetProtocol": {
+        "enable": true,
+        "scope": ["$APPDATA/**"]
+      }
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/icon.png",
+      "icons/icon.ico",
+      "icons/icon.icns",
+      "icons/icon.svg"
+    ]
+  }
+}
