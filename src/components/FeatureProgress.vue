@@ -23,9 +23,30 @@
     emit('update:modelValue', newProgress)
   }
 
-  function updateProgress(index: number, field: 'current' | 'max' | 'type', value: number | progressType) {
+  function toNonNegativeNumber(value: unknown, fallback = 0) {
+    const num = typeof value === 'number' ? value : Number(value)
+    if (!Number.isFinite(num)) return fallback
+    return Math.max(0, num)
+  }
+
+  function updateProgress(index: number, field: 'current' | 'max' | 'type', value: number | string | progressType) {
     const newProgress = [...modelValue]
-    newProgress[index] = { ...newProgress[index], [field]: value }
+    const currentProgress = { ...newProgress[index] }
+
+    if (field === 'current') {
+      const safeMax = toNonNegativeNumber(currentProgress.max)
+      const nextCurrent = toNonNegativeNumber(value)
+      currentProgress.max = safeMax
+      currentProgress.current = Math.min(nextCurrent, safeMax)
+    } else if (field === 'max') {
+      const nextMax = toNonNegativeNumber(value)
+      currentProgress.max = nextMax
+      currentProgress.current = Math.min(toNonNegativeNumber(currentProgress.current), nextMax)
+    } else {
+      currentProgress.type = value as progressType
+    }
+
+    newProgress[index] = currentProgress
     emit('update:modelValue', newProgress)
   }
 
@@ -38,15 +59,18 @@
     <div v-for="(prog, index) in modelValue" :key="index" class="progressItem">
       <BaseTextInput
         type="number"
+        min="0"
+        :max="prog.max"
         :model-value="prog.current"
-        @update:model-value="(val) => updateProgress(index, 'current', Number(val))"
+        @update:model-value="(val) => updateProgress(index, 'current', val)"
         class="progressField"
       />
       out of
       <BaseTextInput
         type="number"
+        min="0"
         :model-value="prog.max"
-        @update:model-value="(val) => updateProgress(index, 'max', Number(val))"
+        @update:model-value="(val) => updateProgress(index, 'max', val)"
         class="progressField"
       />
       <BaseSelect

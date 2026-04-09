@@ -1,4 +1,22 @@
-import { type Item, mediaType, status, tags, progressType } from '../utils/types'
+import { type Item, mediaType, status, type Tag, progressType } from '../utils/types'
+
+// TODO: Re-enable tag mapping from country/genre (restore mapCountryToTag / mapGenreToTag + call sites below).
+
+function getTmdbApiKey(): string | null {
+  const saved = localStorage.getItem('apiKeys')
+  if (!saved) return null
+
+  try {
+    const parsed = JSON.parse(saved)
+    if (typeof parsed === 'string' && parsed.trim()) {
+      return parsed.trim()
+    }
+  } catch {
+    return null
+  }
+
+  return null
+}
 
 export async function anilistSearch(searchInput: string) {
   const query = `
@@ -57,98 +75,71 @@ export async function anilistSearch(searchInput: string) {
     }
   `;
 
-  try {
-    const response = await fetch(`https://graphql.anilist.co`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-      body: JSON.stringify({ query: query, variables: { search: searchInput } }),
-    })
+  const response = await fetch(`https://graphql.anilist.co`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    },
+    body: JSON.stringify({ query: query, variables: { search: searchInput } }),
+  })
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
-    }
-
-    const data = await response.json()
-    return data
-  } catch (error) {
-    console.error('AniList API error:', error)
-    throw error
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`)
   }
+
+  const data = await response.json()
+  return data
 }
 
 export async function tmdbMovieSearch(searchInput: string) {
-  try {
-    // Get API key from localStorage
-    const saved = localStorage.getItem('apiKeys')
-    if (!saved) {
-      throw new Error('TMDB API key not found in localStorage')
-    }
-    const apiKey = JSON.parse(saved)
-
-    if (!apiKey) {
-      throw new Error('TMDB API key is missing')
-    }
-
-    const response = await fetch(
-      `https://api.themoviedb.org/3/search/movie?query=${encodeURIComponent(searchInput)}`,
-      {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'accept': 'application/json',
-        },
-      }
-    )
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
-    }
-
-    const data = await response.json()
-    return data
-  } catch (error) {
-    console.error('TMDB API error:', error)
-    throw error
+  const apiKey = getTmdbApiKey()
+  if (!apiKey) {
+    return { results: [] }
   }
+
+  const response = await fetch(
+    `https://api.themoviedb.org/3/search/movie?query=${encodeURIComponent(searchInput)}`,
+    {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'accept': 'application/json',
+      },
+    }
+  )
+
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`)
+  }
+
+  const data = await response.json()
+  return data
 }
 
 export async function tmdbSeriesSearch(searchInput: string) {
-  try {
-    // Get API key from localStorage
-    const saved = localStorage.getItem('apiKeys')
-    if (!saved) {
-      throw new Error('TMDB API key not found in localStorage')
-    }
-    const apiKey = JSON.parse(saved)
-
-    if (!apiKey) {
-      throw new Error('TMDB API key is missing')
-    }
-
-    const response = await fetch(
-      `https://api.themoviedb.org/3/search/tv?query=${encodeURIComponent(searchInput)}`,
-      {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'accept': 'application/json',
-        },
-      }
-    )
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
-    }
-
-    const data = await response.json()
-    return data
-  } catch (error) {
-    console.error('TMDB API error:', error)
-    throw error
+  const apiKey = getTmdbApiKey()
+  if (!apiKey) {
+    return { results: [] }
   }
+
+  const response = await fetch(
+    `https://api.themoviedb.org/3/search/tv?query=${encodeURIComponent(searchInput)}`,
+    {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'accept': 'application/json',
+      },
+    }
+  )
+
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`)
+  }
+
+  const data = await response.json()
+  return data
 }
 
 export async function tmdbMovieDetails(movieId: number) {
@@ -222,122 +213,120 @@ export async function tmdbSeriesDetails(seriesId: number) {
 }
 
 export async function googlebooksSearch(searchInput: string) {
-  try {
-    const response = await fetch(
-      `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(searchInput)}`,
-      {
-        method: 'GET',
-        headers: {
-          'accept': 'application/json',
-        },
-      }
-    )
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
+  const response = await fetch(
+    `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(searchInput)}`,
+    {
+      method: 'GET',
+      headers: {
+        'accept': 'application/json',
+      },
     }
+  )
 
-    const data = await response.json()
-    return data
-  } catch (error) {
-    console.error('Google Books API error:', error)
-    throw error
-  }
-}
-
-function mapCountryToTag(countryOfOrigin: string | null | undefined): tags | null {
-  if (!countryOfOrigin) return null
-
-  const country = countryOfOrigin.toLowerCase()
-  if (country === 'jp' || country === 'japan' || country === 'ja') {
-    return tags.japanese
-  } else if (country === 'cn' || country === 'china' || country === 'zh' || country === 'hk') {
-    return tags.chinese
-  } else if (country === 'us' || country === 'uk' || country === 'gb' || country === 'ca' || country === 'au' ||
-           country === 'united states' || country === 'united kingdom' || country === 'canada' ||
-           country === 'australia' || country === 'nz' || country === 'new zealand' ||
-           country === 'en' || country === 'english') {
-    return tags.western
-  }
-  return null
-}
-
-function mapGenreToTag(genre: string | null | undefined): tags | null {
-  if (!genre) return null
-
-  const normalized = genre.toLowerCase().trim()
-  
-  const genreMap: Record<string, tags> = {
-    'action': tags.action,
-    'comedy': tags.comedy,
-    'drama': tags.drama,
-    'horror': tags.horror,
-    'thriller': tags.thriller,
-    'sci-fi': tags.sciFi,
-    'science fiction': tags.sciFi,
-    'scifi': tags.sciFi,
-    'romance': tags.romance,
-    'fantasy': tags.fantasy,
-    'adventure': tags.adventure,
-    'animation': tags.animation,
-    'animated': tags.animation,
-    'documentary': tags.documentary,
-    'crime': tags.crime,
-    'mystery': tags.mystery,
-    'family': tags.family,
-    'musical': tags.musical,
-    'war': tags.war,
-    'historical': tags.historical,
-    'history': tags.historical,
-    'wuxia': tags.wuxia,
-    'xianxia': tags.xianxia,
-    'josei': tags.josei,
-    'shoujo': tags.shoujo,
-    'shounen': tags.shounen,
-    'shonen': tags.shounen,
-    'seinen': tags.seinen,
-    'isekai': tags.isekai,
-    'slice-of-life': tags.sliceOfLife,
-    'slice of life': tags.sliceOfLife,
-    'sol': tags.sliceOfLife,
-    'sports': tags.sports,
-    'sport': tags.sports,
-    'mecha': tags.mecha,
-    'mech': tags.mecha,
-    'school': tags.school,
-    'psychological': tags.psychological,
-    'supernatural': tags.supernatural,
-    'regression': tags.regression,
-    'cultivation': tags.cultivation,
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`)
   }
 
-  return genreMap[normalized] || null
+  const data = await response.json()
+  return data
 }
+
+// Tag mapping helpers are temporarily disabled.
+// function mapCountryToTag(countryOfOrigin: string | null | undefined): Tag | null {
+//   if (!countryOfOrigin) return null
+//
+//   const country = countryOfOrigin.toLowerCase()
+//   if (country === 'jp' || country === 'japan' || country === 'ja') {
+//     return 'japanese'
+//   } else if (country === 'cn' || country === 'china' || country === 'zh' || country === 'hk') {
+//     return 'chinese'
+//   } else if (country === 'us' || country === 'uk' || country === 'gb' || country === 'ca' || country === 'au' ||
+//            country === 'united states' || country === 'united kingdom' || country === 'canada' ||
+//            country === 'australia' || country === 'nz' || country === 'new zealand' ||
+//            country === 'en' || country === 'english') {
+//     return 'western'
+//   }
+//   return null
+// }
+//
+// function mapGenreToTag(genre: string | null | undefined): Tag | null {
+//   if (!genre) return null
+//
+//   const normalized = genre.toLowerCase().trim()
+//
+//   const genreMap: Record<string, Tag> = {
+//     'action': 'action',
+//     'comedy': 'comedy',
+//     'drama': 'drama',
+//     'horror': 'horror',
+//     'thriller': 'thriller',
+//     'sci-fi': 'sci-fi',
+//     'science fiction': 'sci-fi',
+//     'scifi': 'sci-fi',
+//     'romance': 'romance',
+//     'fantasy': 'fantasy',
+//     'adventure': 'adventure',
+//     'animation': 'animation',
+//     'animated': 'animation',
+//     'documentary': 'documentary',
+//     'crime': 'crime',
+//     'mystery': 'mystery',
+//     'family': 'family',
+//     'musical': 'musical',
+//     'war': 'war',
+//     'historical': 'historical',
+//     'history': 'historical',
+//     'wuxia': 'wuxia',
+//     'xianxia': 'xianxia',
+//     'josei': 'josei',
+//     'shoujo': 'shoujo',
+//     'shounen': 'shounen',
+//     'shonen': 'shounen',
+//     'seinen': 'seinen',
+//     'isekai': 'isekai',
+//     'slice-of-life': 'slice-of-life',
+//     'slice of life': 'slice-of-life',
+//     'sol': 'slice-of-life',
+//     'sports': 'sports',
+//     'sport': 'sports',
+//     'mecha': 'mecha',
+//     'mech': 'mecha',
+//     'school': 'school',
+//     'psychological': 'psychological',
+//     'supernatural': 'supernatural',
+//     'regression': 'regression',
+//     'cultivation': 'cultivation',
+//   }
+//
+//   return genreMap[normalized] || null
+// }
 
 function parseAnilist(data: any): Item[] {
   if (!data?.data?.Page?.media) return []
 
   return data.data.Page.media.map((media: any) => {
-    const countryTag = mapCountryToTag(media.countryOfOrigin)
-    const tagArray = countryTag ? [countryTag] : []
-
-    if (media.genres) {
-      for (const genre of media.genres) {
-        const mappedTag = mapGenreToTag(genre)
-        if (mappedTag && !tagArray.includes(mappedTag)) {
-          tagArray.push(mappedTag)
-        }
-      }
-    }
-
-    if (media.tags) {
-      for (const tag of media.tags) {
-        const mappedTag = mapGenreToTag(tag.name)
-        if (mappedTag && !tagArray.includes(mappedTag)) {
-          tagArray.push(mappedTag)
-        }
-      }
-    }
+    // Tag mapping temporarily disabled.
+    // const countryTag = mapCountryToTag(media.countryOfOrigin)
+    // const tagArray = countryTag ? [countryTag] : []
+    //
+    // if (media.genres) {
+    //   for (const genre of media.genres) {
+    //     const mappedTag = mapGenreToTag(genre)
+    //     if (mappedTag && !tagArray.includes(mappedTag)) {
+    //       tagArray.push(mappedTag)
+    //     }
+    //   }
+    // }
+    //
+    // if (media.tags) {
+    //   for (const tag of media.tags) {
+    //     const mappedTag = mapGenreToTag(tag.name)
+    //     if (mappedTag && !tagArray.includes(mappedTag)) {
+    //       tagArray.push(mappedTag)
+    //     }
+    //   }
+    // }
+    const tagArray: Tag[] = []
 
     const creators: string[] = []
 
@@ -398,8 +387,10 @@ async function parseTmdbMovies(searchData: any): Promise<Item[]> {
 
   const items: Item[] = []
   for (const movie of searchData.results) {
-    const countryTag = mapCountryToTag(movie.origin_country?.[0] || movie.production_countries?.[0]?.iso_3166_1)
-    const tagArray = countryTag ? [countryTag] : []
+    // Tag mapping temporarily disabled.
+    // const countryTag = mapCountryToTag(movie.origin_country?.[0] || movie.production_countries?.[0]?.iso_3166_1)
+    // const tagArray = countryTag ? [countryTag] : []
+    const tagArray: Tag[] = []
 
     const baseItem = {
       id: -1,
@@ -437,14 +428,15 @@ async function parseTmdbMovies(searchData: any): Promise<Item[]> {
       if (details.release_date) {
         baseItem.startDate = details.release_date
       }
-      if (details.genres) {
-        for (const genre of details.genres) {
-          const mappedTag = mapGenreToTag(genre.name)
-          if (mappedTag && !baseItem.tags.includes(mappedTag)) {
-            baseItem.tags.push(mappedTag)
-          }
-        }
-      }
+      // Tag mapping temporarily disabled.
+      // if (details.genres) {
+      //   for (const genre of details.genres) {
+      //     const mappedTag = mapGenreToTag(genre.name)
+      //     if (mappedTag && !baseItem.tags.includes(mappedTag)) {
+      //       baseItem.tags.push(mappedTag)
+      //     }
+      //   }
+      // }
     } catch (error) {
       console.error(`Failed to fetch details for movie ${movie.id}:`, error)
     }
@@ -459,8 +451,10 @@ async function parseTmdbSeries(searchData: any): Promise<Item[]> {
 
   const items: Item[] = []
   for (const series of searchData.results) {
-    const countryTag = mapCountryToTag(series.origin_country?.[0] || series.production_countries?.[0]?.iso_3166_1)
-    const tagArray = countryTag ? [countryTag] : []
+    // Tag mapping temporarily disabled.
+    // const countryTag = mapCountryToTag(series.origin_country?.[0] || series.production_countries?.[0]?.iso_3166_1)
+    // const tagArray = countryTag ? [countryTag] : []
+    const tagArray: Tag[] = []
 
     const baseItem = {
       id: -1,
@@ -506,14 +500,15 @@ async function parseTmdbSeries(searchData: any): Promise<Item[]> {
           baseItem.progress[0].max = details.number_of_episodes
         }
       }
-      if (details.genres) {
-        for (const genre of details.genres) {
-          const mappedTag = mapGenreToTag(genre.name)
-          if (mappedTag && !baseItem.tags.includes(mappedTag)) {
-            baseItem.tags.push(mappedTag)
-          }
-        }
-      }
+      // Tag mapping temporarily disabled.
+      // if (details.genres) {
+      //   for (const genre of details.genres) {
+      //     const mappedTag = mapGenreToTag(genre.name)
+      //     if (mappedTag && !baseItem.tags.includes(mappedTag)) {
+      //       baseItem.tags.push(mappedTag)
+      //     }
+      //   }
+      // }
     } catch (error) {
       console.error(`Failed to fetch details for series ${series.id}:`, error)
     }
@@ -526,17 +521,19 @@ async function parseTmdbSeries(searchData: any): Promise<Item[]> {
 function parseGoogleBooks(data: any): Item[] {
   if (!data?.items) return []
   return data.items.map((book: any) => {
-    const countryTag = mapCountryToTag(book.volumeInfo?.country || book.saleInfo?.country)
-    const tagArray = countryTag ? [countryTag] : []
-
-    if (book.volumeInfo?.categories) {
-      for (const category of book.volumeInfo.categories) {
-        const mappedTag = mapGenreToTag(category)
-        if (mappedTag && !tagArray.includes(mappedTag)) {
-          tagArray.push(mappedTag)
-        }
-      }
-    }
+    // Tag mapping temporarily disabled.
+    // const countryTag = mapCountryToTag(book.volumeInfo?.country || book.saleInfo?.country)
+    // const tagArray = countryTag ? [countryTag] : []
+    //
+    // if (book.volumeInfo?.categories) {
+    //   for (const category of book.volumeInfo.categories) {
+    //     const mappedTag = mapGenreToTag(category)
+    //     if (mappedTag && !tagArray.includes(mappedTag)) {
+    //       tagArray.push(mappedTag)
+    //     }
+    //   }
+    // }
+    const tagArray: Tag[] = []
 
     return {
       id: -1,
@@ -565,38 +562,32 @@ function parseGoogleBooks(data: any): Item[] {
 }
 
 export async function search(searchInput: string): Promise<Item[]> {
-  try {
-    const [anilistData, tmdbMovieData, tmdbSeriesData, googleBooksData] = await Promise.allSettled([
-      anilistSearch(searchInput),
-      tmdbMovieSearch(searchInput),
-      tmdbSeriesSearch(searchInput),
-      googlebooksSearch(searchInput)
-    ])
+  const [anilistData, tmdbMovieData, tmdbSeriesData, googleBooksData] = await Promise.allSettled([
+    anilistSearch(searchInput),
+    tmdbMovieSearch(searchInput),
+    tmdbSeriesSearch(searchInput),
+    googlebooksSearch(searchInput)
+  ])
 
-    const items: Item[] = []
+  const items: Item[] = []
 
-    if (anilistData.status === 'fulfilled') {
-      items.push(...parseAnilist(anilistData.value))
-    }
-
-    if (tmdbMovieData.status === 'fulfilled') {
-      const movieItems = await parseTmdbMovies(tmdbMovieData.value)
-      items.push(...movieItems)
-    }
-
-    if (tmdbSeriesData.status === 'fulfilled') {
-      const seriesItems = await parseTmdbSeries(tmdbSeriesData.value)
-      items.push(...seriesItems)
-    }
-
-    if (googleBooksData.status === 'fulfilled') {
-      items.push(...parseGoogleBooks(googleBooksData.value))
-    }
-
-    return items
-  } catch (error) {
-    console.error('Search error:', error)
-    return []
+  if (anilistData.status === 'fulfilled') {
+    items.push(...parseAnilist(anilistData.value))
   }
-}
 
+  if (tmdbMovieData.status === 'fulfilled') {
+    const movieItems = await parseTmdbMovies(tmdbMovieData.value)
+    items.push(...movieItems)
+  }
+
+  if (tmdbSeriesData.status === 'fulfilled') {
+    const seriesItems = await parseTmdbSeries(tmdbSeriesData.value)
+    items.push(...seriesItems)
+  }
+
+  if (googleBooksData.status === 'fulfilled') {
+    items.push(...parseGoogleBooks(googleBooksData.value))
+  }
+
+  return items
+}

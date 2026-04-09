@@ -4,6 +4,20 @@
   import { appDataDir, join } from '@tauri-apps/api/path'
   import { download } from '@tauri-apps/plugin-upload'
 
+  function isAssetProtocolImagePath(path: string): boolean {
+    return path.startsWith('http://asset.localhost/')
+      || path.startsWith('https://asset.localhost/')
+      || path.startsWith('asset://localhost/')
+  }
+
+  function stripAssetProtocolPrefix(path: string): string {
+    return decodeURIComponent(
+      path
+        .replace(/^https?:\/\/asset\.localhost\//, '')
+        .replace(/^asset:\/\/localhost\//, '')
+    )
+  }
+
   export async function saveImageAsFile(imageData: string, itemId: number): Promise<string> {
     if (imageData.startsWith('http://') || imageData.startsWith('https://')) {
       const urlLower = imageData.toLowerCase()
@@ -56,7 +70,7 @@
     if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
       return imagePath
     }
-    if (imagePath.startsWith('http://asset.localhost/') || imagePath.startsWith('https://asset.localhost/')) {
+    if (isAssetProtocolImagePath(imagePath)) {
       return imagePath
     }
     if (imagePath.startsWith('file://')) {
@@ -69,9 +83,9 @@
   export async function getImagePath(imageSrc: string): Promise<string> {
     if (!imageSrc) return ''
     if (imageSrc.startsWith('data:image/')) return imageSrc
-    if (imageSrc.startsWith('http://asset.localhost/') || imageSrc.startsWith('https://asset.localhost/')) {
+    if (isAssetProtocolImagePath(imageSrc)) {
       const appData = await appDataDir()
-      let urlPath = decodeURIComponent(imageSrc.replace(/^https?:\/\/asset\.localhost\//, ''))
+      let urlPath = stripAssetProtocolPrefix(imageSrc)
       urlPath = urlPath.replace(/\\/g, '/').replace(/^\/+/, '')
       const appDataPath = appData.replace(/\\/g, '/').replace(/^\/+/, '')
       if (urlPath.toLowerCase().startsWith(appDataPath.toLowerCase())) {

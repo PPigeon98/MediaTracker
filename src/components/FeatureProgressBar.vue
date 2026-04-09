@@ -95,6 +95,32 @@
   }
 
   .progressTextInverted-bottom {
-    border-radius: 0 0 var(--spacing-button-small) var(--spacing-button-small);
+    border-radius: 0 0 var(--radius-card) var(--radius-card);
+  }
+
+  @media (max-width: 40rem) {
+    .progressContainer {
+      --progress-row-h: max(var(--gap-section), calc(var(--font-size-text-small) * 1.35));
+      height: var(--progress-row-h);
+      --progress-corner-r: min(
+        max(0px, calc(4 * var(--progress-row-h) / 2 - var(--border)))
+      );
+    }
+
+    .progressText,
+    .progressTextInverted {
+      font-size: calc(var(--font-size-text-small) * 0.82);
+    }
+
+    .progressText-bottom,
+    .progressTextInverted-bottom {
+      border-bottom-left-radius: var(--progress-corner-r);
+      border-bottom-right-radius: var(--progress-corner-r);
+    }
+
+    .progressBar-rounded {
+      border-top-right-radius: var(--progress-corner-r);
+      border-bottom-right-radius: var(--progress-corner-r);
+    }
   }
 </style>

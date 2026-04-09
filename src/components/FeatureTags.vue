@@ -1,18 +1,23 @@
 <script setup lang="ts">
-  import { tags } from '../utils/types'
+  import { computed } from 'vue'
+  import { useCustomTags } from '../composables/useCustomTags'
+  import type { Tag } from '../utils/types'
   import BaseCheckbox from './BaseCheckbox.vue'
 
   const { selectedTags } = defineProps<{
-    selectedTags: tags[]
+    selectedTags: Tag[]
   }>()
 
   const emit = defineEmits<{
-    (e: 'update:selectedTags', value: tags[]): void
+    (e: 'update:selectedTags', value: Tag[]): void
   }>()
 
-  const tagOptions = Object.values(tags)
+  const { sortedCustomTags } = useCustomTags()
+  const tagOptions = computed(() =>
+    Array.from(new Set([...sortedCustomTags.value, ...selectedTags])).sort((a, b) => a.localeCompare(b))
+  )
 
-  function handleTagChange(tag: tags, checked: boolean) {
+  function handleTagChange(tag: Tag, checked: boolean) {
     const newTags = checked
       ? [...selectedTags, tag]
       : selectedTags.filter(t => t !== tag)

@@ -39,8 +39,13 @@
 <template>
   <div class="homeContainer">
     <div>
-      <BaseButton text="Sync" @click="router.push('/Sync')" class="syncButton" />
-      <BaseButton text="+" :glow="true" @click="router.push('/Search')" class="addItemButton" />
+      <BaseButton
+        text="+"
+        :glow="true"
+        @click="router.push('/Search')"
+        class="addItemButton"
+        :style="{ position: 'fixed', zIndex: '1000000' }"
+      />
     </div>
     <div
       v-for="section in sections"
@@ -68,11 +73,11 @@
 <style scoped>
   .addItemButton {
     bottom: var(--spacing-page-edge);
-    height: var(--spacing-button);
+    height: var(--size-button-icon);
     left: 50%;
-    position: fixed;
+    padding: 0;
     transform: translateX(-50%);
-    width: var(--spacing-button);
+    width: var(--size-button-icon);
   }
 
   .homeContainer {
@@ -94,19 +99,10 @@
     margin: 0;
   }
 
-  .syncButton {
-    position: fixed;
-    left: var(--spacing-page-edge);
-    bottom: var(--spacing-page-edge);
-  }
-
   @media (max-width: 40rem) {
     .addItemButton {
-      bottom: calc(var(--spacing-page-edge) + var(--padding-bottom-mobile));
-    }
-
-    .syncButton {
-      bottom: calc(var(--spacing-page-edge) + var(--padding-bottom-mobile));
+      bottom: calc(var(--spacing-page-edge) + var(--content-bottom-inset));
+      padding: var(--padding-button-block) var(--padding-button-inline);
     }
   }
 </style>

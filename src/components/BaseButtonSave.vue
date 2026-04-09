@@ -69,17 +69,25 @@
     box-shadow: 0 0.05vw 0.05vw 0.1vw color-mix(in srgb, var(--colour-primary) 20%, transparent),
       0 1vw 2vw color-mix(in srgb, var(--colour-base-300) 20%, transparent),
       0 0.4vw 0.5vw 0vw color-mix(in srgb, var(--colour-base-300) 5%, transparent);
+    box-sizing: border-box;
     cursor: pointer;
     display: flex;
     font-size: 2vw;
     font-weight: 700;
-    height: 6.8vw;
     justify-content: center;
-    min-width: 20vw;
-    padding: 2vw;
+    min-width: max-content;
+    padding: 0.5em 1em;
     position: relative;
     text-shadow: 0 0.1vw 0.1vw color-mix(in srgb, var(--colour-base-300) 30%, transparent);
     transition: all 0.3s ease;
+  }
+
+  @media (max-width: 40rem) {
+    .button {
+      font-size: 5.5vw;
+      min-width: min(85vw, 22rem);
+      padding: var(--padding-button-block) var(--padding-button-inline);
+    }
   }
 
   .button:active {

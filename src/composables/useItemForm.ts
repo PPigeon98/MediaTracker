@@ -1,5 +1,5 @@
 import { ref } from 'vue'
-import { mediaType, tags, status, type Item, type progress, mediaTypeLabels, statusLabels, splitLines } from '../utils/types'
+import { mediaType, status, type Item, type progress, type Tag, mediaTypeLabels, statusLabels, splitLines } from '../utils/types'
 import { useSelectOptions } from './useSelectOptions'
 import { getImageSrc } from '../components/FeatureAssets.vue'
 import { getItemImages } from '../components/FeatureDatabase.vue'
@@ -10,7 +10,7 @@ export function useItemForm() {
     description: '',
     mediaTypeValue: mediaType.anime,
     statusValue: status.tracking,
-    selectedTags: [] as tags[],
+    selectedTags: [] as Tag[],
     progress: [] as progress[],
     imageSet: [] as string[],
     notes: '',

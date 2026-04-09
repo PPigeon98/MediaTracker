@@ -59,7 +59,7 @@ export function useItemOperations() {
       }
       itemId = await addItem(newItem)
       const items = await getItems()
-      const savedItem = items.find(i => i.id === itemId)
+      const savedItem = items.find((i: Item) => i.id === itemId)
       currentItem = savedItem!
     }
 
@@ -161,4 +161,3 @@ export function useItemOperations() {
     deleteItem,
   }
 }
-

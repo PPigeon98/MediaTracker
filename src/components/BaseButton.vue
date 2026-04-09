@@ -18,11 +18,15 @@
 
 <style scoped>
   .button {
+    align-items: center;
     background-color: var(--colour-base-100);
     border: var(--border) solid v-bind(buttonColour);
     border-radius: var(--radius-input);
+    box-sizing: border-box;
     cursor: pointer;
+    display: inline-flex;
     font-size: var(--font-size-text-button);
+    justify-content: center;
     overflow: hidden;
     padding: 0.5em 1em;
     position: relative;
@@ -77,5 +81,11 @@
   .button:hover::before,
   .button:hover::after {
     scale: 1;
+  }
+
+  @media (max-width: 40rem) {
+    .button {
+      padding: var(--padding-button-block) var(--padding-button-inline);
+    }
   }
 </style>

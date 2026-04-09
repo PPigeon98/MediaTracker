@@ -12,7 +12,7 @@
     item: Item
   }>()
 
-  const { imageSrc } = useImageLoader(item.coverImage)
+  const { imageSrc } = useImageLoader(() => item.coverImage)
   const { navigateToItem } = useItemNavigation()
 
   function handleCardClick() {
@@ -24,9 +24,13 @@
 
 <template>
   <div class="cardWrapper" @click="handleCardClick">
-    <img :src="imageSrc || tempCardImage" :alt="item.title" class="cardImage">
-    <FeatureType :type="item.mediaType" class="type" />
-    <FeatureOngoing v-if="item.ongoing" class="ongoing" />
+    <div class="cardMedia">
+      <img :src="imageSrc || tempCardImage" :alt="item.title" class="cardImage">
+      <FeatureType :type="item.mediaType" class="type" />
+      <div v-if="item.ongoing" class="ongoingSlot">
+        <FeatureOngoing />
+      </div>
+    </div>
     <h2>{{ item.title }}</h2>
     <FeatureProgressBar :progress="item.progress" />
   </div>
@@ -37,8 +41,30 @@
     aspect-ratio: 1;
     border: calc(var(--border) * 2) solid v-bind('borderColour');
     border-radius: var(--radius-card);
+    display: block;
     object-fit: cover;
     width: 100%;
+  }
+
+  .cardMedia {
+    position: relative;
+    width: 100%;
+  }
+
+  .cardMedia > .ongoingSlot {
+    --ongoing-from-right: calc(var(--border) * -2);
+    --ongoing-from-bottom: calc(var(--border) * 2);
+
+    align-items: flex-end;
+    bottom: var(--ongoing-from-bottom);
+    box-sizing: border-box;
+    display: flex;
+    justify-content: flex-end;
+    left: 0;
+    pointer-events: none;
+    position: absolute;
+    right: var(--ongoing-from-right);
+    z-index: 2;
   }
 
   .cardWrapper {
@@ -72,15 +98,24 @@
     transition: all 0.2s ease;
   }
 
-  .ongoing {
-    position: absolute;
-    right: 0;
-    top: calc(var(--size-card-width) - var(--radius-card) + var(--border) * 4);
-  }
-
-  .type {
+  .cardMedia :deep(.type) {
     left: 0;
     position: absolute;
     top: var(--border);
+  }
+
+  @media (max-width: 40rem) {
+    .cardMedia > .ongoingSlot {
+      --ongoing-from-right: calc(var(--border) * -1.5);
+      --ongoing-from-bottom: calc(var(--border) * 1.8);
+    }
+
+    .cardWrapper:hover :deep(.typeEar) {
+      width: 32vw;
+    }
+
+    .cardWrapper:hover :deep(.ongoingEar) {
+      width: 28vw;
+    }
   }
 </style>

@@ -5,8 +5,7 @@ import PageSearch from '../components/PageSearch.vue';
 import PageSplash from '../components/PageSplash.vue';
 import PageLibrary from '../components/PageLibrary.vue';
 import { status } from '../utils/types';
-import PageKeys from '../components/PageKeys.vue';
-import PageSync from '../components/PageSync.vue';
+import PageSettings from '../components/PageSettings.vue';
 
 export const router = createRouter({
   history: createWebHistory(),
@@ -28,12 +27,8 @@ export const router = createRouter({
       component: PageSearch
     },
     {
-      path: '/Keys',
-      component: PageKeys
-    },
-    {
-      path: '/Sync',
-      component: PageSync
+      path: '/Settings',
+      component: PageSettings
     },
     {
       path: '/Library',
@@ -49,7 +44,8 @@ export const router = createRouter({
         return {
           show: route.query.show === 'true',
           type: route.query.type ? statusMap[route.query.type as string] : undefined,
-          title: route.query.title === 'true'
+          title: route.query.title === 'true',
+          showBackButton: true
         }
       }
     }

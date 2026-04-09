@@ -7,11 +7,13 @@
   import FeatureFilter from './FeatureFilter.vue'
   import BaseButtonBack from './BaseButtonBack.vue'
 
-  const { items: itemsProp, show, type, title } = defineProps<{
+  const { items: itemsProp, show, type, title, showBackButton, firstRowOnly } = defineProps<{
     items?: Item[]
     show: boolean
     type?: status
     title?: boolean
+    showBackButton?: boolean
+    firstRowOnly?: boolean
   }>()
 
   const initialSortBy: SortBy = title ? 'title' : 'lastUpdated'
@@ -24,7 +26,7 @@
 
 <template>
   <div class="container">
-    <BaseButtonBack />
+    <BaseButtonBack v-if="showBackButton !== false" />
     <FeatureFilter 
       class="filter" 
       :show="show" 
@@ -33,6 +35,7 @@
       :filterSearch="filterSearch"
       :filterTags="filterTags"
       :filterMediaType="filterMediaType"
+      :firstRowOnly="firstRowOnly"
       @update:filterStatus="currentFilterStatus = $event" 
       @update:limit="filterLimit = $event" 
       @update:sortBy="filterSortBy = $event"
@@ -66,4 +69,5 @@
     justify-self: center;
     margin-bottom: var(--spacing-button);
   }
+
 </style>

@@ -57,6 +57,7 @@
     border: var(--border) solid var(--colour-primary);
     border-radius: calc(var(--border) * 1.2);
     cursor: pointer;
+    flex-shrink: 0;
     height: 1.2vw;
     width: 1.2vw;
   }
@@ -68,5 +69,16 @@
   .text {
     color: var(--colour-base-content);
     white-space: nowrap;
+  }
+
+  @media (max-width: 40rem) {
+    .text {
+      font-size: var(--font-size-text-small);
+    }
+
+    .input {
+      height: max(3.25vw, 1.15rem);
+      width: max(3.25vw, 1.15rem);
+    }
   }
 </style>

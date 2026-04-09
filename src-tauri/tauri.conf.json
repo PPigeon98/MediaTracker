@@ -26,6 +26,18 @@
       }
     }
   },
+  "plugins": {
+    "deep-link": {
+      "desktop": {
+        "schemes": ["media-tracker"]
+      },
+      "mobile": [
+        {
+          "scheme": ["media-tracker"]
+        }
+      ]
+    }
+  },
   "bundle": {
     "active": true,
     "targets": "all",

@@ -39,4 +39,12 @@
   .input::placeholder {
     color: var(--colour-neutral);
   }
+
+  @media (max-width: 40rem) {
+    .input {
+      font-size: var(--font-size-text-small);
+      line-height: 1.45;
+      min-height: max(var(--font-size-text-small), var(--min-height-form-control));
+    }
+  }
 </style>

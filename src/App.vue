@@ -92,16 +92,23 @@
     --spacing-select-padding: 0.5vw;
     --spacing-button-small: 3vw;
     --spacing-button: 5vw;
+    --padding-button-block: 0.5vw;
+    --padding-button-inline: 1vw;
+    --size-button-icon: var(--spacing-button);
     --spacing-page-edge: 6vw;
     --window-bar-height: 3vh;
+    --safe-area-top: env(safe-area-inset-top, 0px);
+    --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+    --window-bar-stack-height: calc(var(--window-bar-height) + var(--safe-area-top));
+    --content-bottom-inset: max(var(--safe-area-bottom), 0.75rem);
+    --page-content-offset-top: calc(var(--window-bar-stack-height) + var(--size-button-icon) + var(--spacing-page-edge));
     --size-card-width: 22vw;
     --font-size-text-small: 1vw;
     --font-size-text-button: 1.5vw;
     --font-size-heading: 3vw;
     --padding-filter: 1rem;
     --gap-section: 2vw;
-    --padding-top-mobile: 5vh;
-    --padding-bottom-mobile: 10vh;
+    --min-height-form-control: 0px;
 
     --colour-transparent: transparent;
 
@@ -149,17 +156,20 @@
   }
 
   .content {
-    padding-top: calc(var(--window-bar-height) + 1vh);
+    padding-top: calc(var(--window-bar-stack-height) + 1vh);
   }
 
   @media (max-width: 40rem) {
     :root {
       --size-card-width: 38vw;
-    }
-
-    .app {
-      padding-top: var(--padding-top-mobile);
-      padding-bottom: var(--padding-bottom-mobile);
+      --font-size-text-small: 2.75vw;
+      --font-size-text-button: 5vw;
+      --font-size-heading: 6vw;
+      --min-height-form-control: 2.35rem;
+      --spacing-select-padding: 1.25vw;
+      --padding-button-block: 2.25vw;
+      --padding-button-inline: 2.25vw;
+      --size-button-icon: calc(var(--spacing-button) + 2 * max(var(--padding-button-block), var(--padding-button-inline)));
     }
   }
 </style>

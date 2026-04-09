@@ -1,5 +1,8 @@
 <script setup lang="ts">
   import { getCurrentWindow } from '@tauri-apps/api/window';
+  import { useRouter } from 'vue-router'
+
+  const router = useRouter()
 
   async function minimise() {
     await getCurrentWindow().minimize();
@@ -16,6 +19,9 @@
 
 <template>
   <div class="windowBar">
+    <div class="windowBarSettingsButton">
+      <button @click="router.push('/Settings')" aria-label="Open settings">⚙</button>
+    </div>
     <div class="windowBarButtons">
       <button @click="minimise">─</button>
       <button @click="maximise">▢</button>
@@ -32,8 +38,10 @@
   .windowBar {
     -webkit-app-region: drag;
     background-color: var(--colour-base-300);
-    height: var(--window-bar-height);
+    box-sizing: border-box;
+    height: calc(var(--window-bar-height) + env(safe-area-inset-top, 0px));
     left: 0;
+    padding-top: env(safe-area-inset-top, 0px);
     margin-bottom: 0vh;
     position: fixed;
     right: 0;
@@ -51,6 +59,32 @@
     position: absolute;
     right: 0vh;
     top: 0vh;
+  }
+
+  .windowBarSettingsButton {
+    -webkit-app-region: no-drag;
+    align-items: center;
+    display: flex;
+    height: 100%;
+    left: 0;
+    position: absolute;
+    top: 0;
+  }
+
+  .windowBarSettingsButton button {
+    align-items: center;
+    background: none;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    font-size: 1.8vh;
+    height: var(--window-bar-height);
+    justify-content: center;
+    width: 6vh;
+  }
+
+  .windowBarSettingsButton button:hover {
+    background-color: var(--colour-accent);
   }
 
   .windowBarButtons button {
@@ -83,12 +117,13 @@
   }
 
   @media (max-width: 40rem) {
-    .windowBarButtons {
-      display: none;
+    .windowBarSettingsButton button,
+    .windowBarButtons button {
+      font-size: 2.2vh;
     }
 
-    .windowBar {
-      padding-top: var(--padding-top-mobile);
+    .windowBarButtons {
+      display: none;
     }
   }
 </style>

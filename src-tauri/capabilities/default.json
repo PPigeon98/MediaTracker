@@ -26,6 +26,7 @@
     "sql:default",
     "sql:allow-execute",
     "upload:default",
-    "dialog:default"
+    "dialog:default",
+    "deep-link:default"
   ]
 }

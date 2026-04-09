@@ -1,19 +1,20 @@
 <script setup lang="ts">
-  import { ref, watch } from 'vue'
-  import { status, mediaType, tags, mediaTypeLabels } from '../utils/types'
-  import { type SortBy } from '../utils/types'
+  import { computed, ref, watch } from 'vue'
+  import { status, mediaType, mediaTypeLabels, type SortBy, type Tag } from '../utils/types'
+  import { useCustomTags } from '../composables/useCustomTags'
   import BaseSelect from './BaseSelect.vue'
   import BaseTextInput from './BaseTextInput.vue'
   import BaseCheckbox from './BaseCheckbox.vue'
 
-  const { filterStatus, limit, sortBy, show, filterSearch, filterTags, filterMediaType } = defineProps<{
+  const { filterStatus, limit, sortBy, show, filterSearch, filterTags, filterMediaType, firstRowOnly } = defineProps<{
     filterStatus?: status
     limit?: number
     sortBy?: SortBy
     show: boolean
     filterSearch?: string
-    filterTags?: tags[]
+    filterTags?: Tag[]
     filterMediaType?: mediaType
+    firstRowOnly?: boolean
   }>()
 
   const emit = defineEmits<{
@@ -21,7 +22,7 @@
     (e: 'update:limit', value: number | undefined): void
     (e: 'update:sortBy', value: SortBy): void
     (e: 'update:filterSearch', value: string): void
-    (e: 'update:filterTags', value: tags[]): void
+    (e: 'update:filterTags', value: Tag[]): void
     (e: 'update:filterMediaType', value: mediaType | undefined): void
   }>()
 
@@ -29,13 +30,14 @@
   const localLimit = ref<number | undefined>(limit)
   const localSortBy = ref<SortBy>(sortBy || 'lastUpdated')
   const localSearch = ref<string>(filterSearch || '')
-  const localTags = ref<tags[]>(filterTags || [])
+  const localTags = ref<Tag[]>(filterTags || [])
   const localMediaType = ref<mediaType | undefined>(filterMediaType)
+  const { sortedCustomTags } = useCustomTags()
 
-  const tagOptions = Object.values(tags).map(tag => ({
+  const tagOptions = computed(() => Array.from(new Set([...sortedCustomTags.value, ...localTags.value])).sort((a, b) => a.localeCompare(b)).map(tag => ({
     value: tag,
     label: tag
-  }))
+  })))
 
   const mediaTypeOptions = [
     { value: '', label: 'All' },
@@ -78,7 +80,9 @@
   }
 
   function updateLimit(value: string) {
-    const numValue = value === '' ? undefined : Number(value)
+    const numValue = value === ''
+      ? undefined
+      : Math.max(0, Number(value))
     localLimit.value = numValue
     emit('update:limit', numValue)
   }
@@ -100,7 +104,7 @@
     emit('update:filterMediaType', newMediaType)
   }
 
-  function toggleTag(tag: tags, checked: boolean) {
+  function toggleTag(tag: Tag, checked: boolean) {
     const newTags = checked
       ? [...localTags.value, tag]
       : localTags.value.filter(t => t !== tag)
@@ -111,93 +115,107 @@
 
 <template>
   <div class="filter" v-if="show">
-    <div class="filterGroup filterGroupSearch">
-      <label for="search">Search:</label>
-      <BaseTextInput
-        id="search"
-        :model-value="localSearch"
-        placeholder="Search by title..."
-        @update:model-value="updateSearch"
-        :border="true"
-      />
-    </div>
+    <div class="filterRow filterRowTop">
+      <div class="filterGroup filterGroupSearch">
+        <label for="search">Search:</label>
+        <BaseTextInput
+          id="search"
+          :model-value="localSearch"
+          placeholder="Search by title..."
+          @update:model-value="updateSearch"
+          :border="true"
+        />
+      </div>
 
-    <div class="filterGroup">
-      <label for="mediaType">Type:</label>
-      <BaseSelect
-        id="mediaType"
-        :options="mediaTypeOptions"
-        :model-value="localMediaType !== undefined ? localMediaType : ''"
-        @update:model-value="updateMediaType($event as string)"
-      />
-    </div>
-
-    <div class="filterGroup filterGroupTags">
-      <label for="tags">Tags:</label>
-      <div class="tagsContainer">
-        <BaseCheckbox
-          v-for="tag in tagOptions"
-          :key="tag.value"
-          :text="tag.label"
-          :checked="localTags.includes(tag.value as tags)"
-          @update:checked="(checked) => toggleTag(tag.value as tags, checked)"
+      <div class="filterGroup filterGroupType">
+        <label for="mediaType">Type:</label>
+        <BaseSelect
+          id="mediaType"
+          :options="mediaTypeOptions"
+          :model-value="localMediaType !== undefined ? localMediaType : ''"
+          @update:model-value="updateMediaType($event as string)"
         />
       </div>
     </div>
 
-    <div class="filterGroup">
-      <label for="status">Status:</label>
-      <BaseSelect
-        id="status"
-        :options="[
-          { value: '', label: 'All' },
-          { value: status.tracking, label: 'Tracking' },
-          { value: status.completed, label: 'Completed' },
-          { value: status.onHold, label: 'On Hold' },
-          { value: status.dropped, label: 'Dropped' },
-          { value: status.planned, label: 'Planned' }
-        ]"
-        :model-value="localStatus !== undefined ? localStatus : ''"
-        @update:model-value="updateStatus($event as string)"
-      />
+    <div v-if="!firstRowOnly" class="filterRow filterRowTags">
+      <div class="filterGroup filterGroupTags">
+      <span class="tagsInlineLabel">Tags:</span>
+      <div class="tagsContainer" id="tags">
+        <BaseCheckbox
+          v-for="tag in tagOptions"
+          :key="tag.value"
+          :text="tag.label"
+          :checked="localTags.includes(tag.value as Tag)"
+          @update:checked="(checked) => toggleTag(tag.value as Tag, checked)"
+        />
+      </div>
+      </div>
     </div>
 
-    <div class="filterGroup">
-      <label for="limit">Limit:</label>
-      <BaseTextInput
-        id="limit"
-        type="number"
-        :model-value="localLimit ? localLimit.toString() : ''"
-        placeholder="None"
-        @update:model-value="updateLimit"
-        :border="true"
-      />
-    </div>
+    <div v-if="!firstRowOnly" class="filterRow filterRowBottom">
+      <div class="filterGroup filterGroupStatus">
+        <label for="status">Status:</label>
+        <BaseSelect
+          id="status"
+          :options="[
+            { value: '', label: 'All' },
+            { value: status.tracking, label: 'Tracking' },
+            { value: status.completed, label: 'Completed' },
+            { value: status.onHold, label: 'On Hold' },
+            { value: status.dropped, label: 'Dropped' },
+            { value: status.planned, label: 'Planned' }
+          ]"
+          :model-value="localStatus !== undefined ? localStatus : ''"
+          @update:model-value="updateStatus($event as string)"
+        />
+      </div>
 
-    <div class="filterGroup">
-      <label for="sortBy">Sort By:</label>
-      <BaseSelect
-        id="sortBy"
-        :options="[
-          { value: 'lastUpdated', label: 'Last Updated' },
-          { value: 'title', label: 'Title' }
-        ]"
-        :model-value="localSortBy"
-        @update:model-value="updateSortBy($event as string)"
-      />
+      <div class="filterGroup filterGroupLimit">
+        <label for="limit">Limit:</label>
+        <BaseTextInput
+          id="limit"
+          type="number"
+          min="0"
+          :model-value="localLimit !== undefined ? localLimit.toString() : ''"
+          placeholder="None"
+          @update:model-value="updateLimit"
+          :border="true"
+        />
+      </div>
+
+      <div class="filterGroup filterGroupSortBy">
+        <label for="sortBy">Sort By:</label>
+        <BaseSelect
+          id="sortBy"
+          :options="[
+            { value: 'lastUpdated', label: 'Last Updated' },
+            { value: 'title', label: 'Title' }
+          ]"
+          :model-value="localSortBy"
+          @update:model-value="updateSortBy($event as string)"
+        />
+      </div>
     </div>
   </div>
 </template>
 
 <style scoped>
   .filter {
+    align-items: stretch;
+    display: flex;
+    flex-direction: column;
+    gap: var(--padding-filter);
+    margin: 0 auto;
+    max-width: min(90rem, 100%);
+    padding: var(--padding-filter);
+  }
+
+  .filterRow {
     align-items: center;
     display: flex;
-    flex-wrap: wrap;
     gap: var(--padding-filter);
-    padding: var(--padding-filter);
-    padding-left: calc(var(--padding-filter) * 7);
-    padding-right: calc(var(--padding-filter) * 7);
+    justify-content: center;
   }
 
   .filterGroup {
@@ -215,36 +233,62 @@
     width: 15vw;
   }
 
+  .filterGroupLimit {
+    min-width: 0;
+  }
+
+  .filterGroupLimit input {
+    min-width: 0;
+  }
+
   .filterGroup label {
     font-weight: bold;
     white-space: nowrap;
   }
 
   .filterGroupTags {
-    flex-direction: column;
-    align-items: flex-start;
-    width: 100%;
+    align-items: center;
+    flex-direction: row;
+    margin: 0 auto;
+    width: 75%;
   }
 
   .tagsContainer {
+    align-items: center;
     display: flex;
     flex-direction: row;
-    flex-wrap: wrap;
-    gap: calc(var(--gap-section) / 4);
-    max-width: 100%;
+    gap: calc(var(--gap-section) / 2);
+    justify-content: flex-start;
     overflow-x: auto;
     overflow-y: hidden;
+    width: 100%;
+  }
+
+  .tagsInlineLabel {
+    flex: 0 0 auto;
+    font-weight: bold;
+    white-space: nowrap;
   }
 
   @media (max-width: 40rem) {
     .filter {
-      flex-direction: column;
+      max-width: 100%;
+    }
+
+    .filterRow {
       align-items: stretch;
+      flex-direction: column;
     }
 
     .filterGroup {
       flex-direction: column;
       align-items: flex-start;
+    }
+
+    .filterGroupTags {
+      align-items: flex-start;
+      flex-direction: column;
+      width: 100%;
     }
 
     .filterGroup input {

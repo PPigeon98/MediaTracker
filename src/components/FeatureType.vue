@@ -29,7 +29,9 @@
     height: calc(var(--radius-card) - var(--border) * 2);
     justify-content: center;
     overflow: hidden;
-    transition: all 0.2s ease;
+    transition:
+      width 0.2s ease,
+      clip-path 0.2s ease;
     width: calc(var(--radius-card) - var(--border) * 2);
   }
 
@@ -38,5 +40,17 @@
     font-size: var(--font-size-text-button);
     font-weight: bold;
     opacity: 0;
+  }
+
+  @media (max-width: 40rem) {
+    .typeEar {
+      --type-ear-base: calc(var(--radius-card) - var(--border) * 2);
+      height: calc(var(--type-ear-base) * 3);
+      width: calc(var(--type-ear-base) * 3);
+    }
+
+    .typeText {
+      font-size: var(--font-size-text-small);
+    }
   }
 </style>

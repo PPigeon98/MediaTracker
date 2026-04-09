@@ -6,12 +6,14 @@
   import PageLibrary from './PageLibrary.vue'
   import BaseButton from './BaseButton.vue'
   import BaseTextInput from './BaseTextInput.vue'
+  import BaseButtonBack from './BaseButtonBack.vue'
 
   const router = useRouter()
   const searchInput = ref('')
   const items = ref<Item[]>([])
   const hasSearched = ref(false)
   const loading = ref(false)
+  const showFilters = ref(false)
 
   async function search() {
     if (!searchInput.value.trim()) return
@@ -34,29 +36,38 @@
 
 <template>
   <div class="itemPage">
-    <BaseButton text="API Keys" @click="router.push('/Keys')" class="apiButton" />
+    <BaseButtonBack />
     <BaseButton text="Manual Add" @click="router.push('/Details')" class="addItemButton" />
     <h1 class="searchTitle">Search Media</h1>
     <div class="searchInputContainer">
+      <button class="searchButton filterButton" type="button" @click="showFilters = !showFilters">
+        <svg class="filterIcon" viewBox="0 0 24 24" aria-hidden="true">
+          <path
+            d="M3 5H21L14 13V19L10 21V13L3 5Z"
+            fill="none"
+            stroke="var(--colour-primary)"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
+      </button>
       <BaseTextInput v-model="searchInput" placeholder="Search for media here..." @keyup.enter="search" class="searchInput" />
       <BaseButton text="🔍︎" @click="search()" class="searchButton" />
     </div>
     <h1 v-if="loading" class="statusMessage">Loading...</h1>
     <h1 v-else-if="hasSearched && items.length === 0" class="statusMessage">No results found</h1>
-    <PageLibrary v-else :items="items" :show="false" :title="true" />
+    <PageLibrary v-else :items="items" :show="showFilters" :title="true" :showBackButton="false" :firstRowOnly="true" />
   </div>
 </template>
 
 <style scoped>
   .addItemButton {
+    box-sizing: border-box;
+    min-height: var(--spacing-button);
     position: absolute;
     right: var(--spacing-page-edge);
-    top: calc(var(--spacing-page-edge) / 2 + var(--window-bar-height));
-  }
-
-  .apiButton {
-    position: absolute;
-    top: calc(var(--spacing-page-edge) / 2 + var(--window-bar-height));
+    top: calc(var(--spacing-page-edge) / 2 + var(--window-bar-stack-height));
   }
 
   .itemPage {
@@ -74,6 +85,21 @@
     width: var(--spacing-button-small);
   }
 
+  .filterButton {
+    align-items: center;
+    background-color: var(--colour-base-100);
+    border: var(--border) solid var(--colour-primary);
+    border-radius: var(--radius-input);
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+  }
+
+  .filterIcon {
+    height: 55%;
+    width: 55%;
+  }
+
   .searchInput {
     height: var(--spacing-button-small);
     width: 65%;
@@ -83,7 +109,6 @@
     align-items: center;
     display: flex;
     flex-direction: row;
-    height: 100%;
     justify-content: center;
     width: 100%;
   }
@@ -97,12 +122,29 @@
   }
 
   @media (max-width: 40rem) {
-    .addItemButton {
-      top: calc(var(--padding-top-mobile) / 2 + var(--window-bar-height) + var(--spacing-page-edge));
+    .itemPage {
+      box-sizing: border-box;
+      justify-content: flex-start;
+      min-height: 100%;
+      padding-top: var(--page-content-offset-top);
     }
 
-    .apiButton {
-      top: calc(var(--padding-top-mobile) / 2 + var(--window-bar-height) + var(--spacing-page-edge));
+    .addItemButton {
+      top: calc(var(--window-bar-stack-height) + var(--spacing-page-edge));
+    }
+
+    .searchTitle,
+    .statusMessage {
+      margin-top: var(--gap-section);
+    }
+
+    .searchButton {
+      min-height: max(var(--spacing-button-small), var(--min-height-form-control));
+      min-width: max(var(--spacing-button-small), var(--min-height-form-control));
+    }
+
+    .searchInput {
+      min-height: max(var(--spacing-button-small), var(--min-height-form-control));
     }
   }
 </style>

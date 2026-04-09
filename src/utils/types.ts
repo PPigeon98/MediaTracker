@@ -24,44 +24,7 @@ export enum mediaType {
   other = 11,
 }
 
-export enum tags {
-  western = 'western',
-  chinese = 'chinese',
-  japanese = 'japanese',
-  action = 'action',
-  comedy = 'comedy',
-  drama = 'drama',
-  horror = 'horror',
-  thriller = 'thriller',
-  sciFi = 'sci-fi',
-  romance = 'romance',
-  fantasy = 'fantasy',
-  adventure = 'adventure',
-  animation = 'animation',
-  documentary = 'documentary',
-  crime = 'crime',
-  mystery = 'mystery',
-  family = 'family',
-  musical = 'musical',
-  war = 'war',
-  historical = 'historical',
-  wuxia = 'wuxia',
-  xianxia = 'xianxia',
-  josei = 'josei',
-  shoujo = 'shoujo',
-  shounen = 'shounen',
-  seinen = 'seinen',
-  isekai = 'isekai',
-  sliceOfLife = 'slice-of-life',
-  sports = 'sports',
-  mecha = 'mecha',
-  school = 'school',
-  psychological = 'psychological',
-  supernatural = 'supernatural',
-  regression = 'regression',
-  cultivation = 'cultivation',
-  other = 'other',
-}
+export type Tag = string
 
 export enum status {
   tracking = 0,
@@ -86,7 +49,7 @@ export interface Item {
   coverImage: string;
   status: status;
   mediaType: mediaType;
-  tags: tags[];
+  tags: Tag[];
   progress: progress[];
   imageSet: string[];
   notes: string;

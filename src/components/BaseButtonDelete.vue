@@ -63,15 +63,16 @@
     background-color: var(--colour-secondary);
     border: calc(var(--border) * 1.2) solid color-mix(in srgb, var(--colour-secondary-content) 20%, transparent);
     border-radius: var(--radius-input);
+    box-sizing: border-box;
     cursor: pointer;
     display: flex;
     flex-direction: column;
-    height: var(--spacing-button-small);
+    height: var(--size-button-icon);
     justify-content: center;
     overflow: hidden;
     position: relative;
     transition: background-color 0.3s ease;
-    width: var(--spacing-button-small);
+    width: var(--size-button-icon);
   }
 
   .deleteButton:hover {

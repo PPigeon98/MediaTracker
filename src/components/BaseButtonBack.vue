@@ -19,17 +19,19 @@
 
 <style scoped>
   .backButton {
-    height: var(--spacing-button);
+    height: var(--size-button-icon);
     left: var(--spacing-page-edge);
+    padding: 0;
     position: absolute;
-    top: calc(var(--spacing-page-edge) / 2 + var(--window-bar-height));
-    width: var(--spacing-button);
+    top: calc(var(--spacing-page-edge) / 2 + var(--window-bar-stack-height));
+    width: var(--size-button-icon);
     z-index: 727;
   }
 
   @media (max-width: 40rem) {
     .backButton {
-      top: calc(var(--padding-top-mobile) / 2 + var(--window-bar-height) + var(--spacing-page-edge));
+      padding: var(--padding-button-block) var(--padding-button-inline);
+      top: calc(var(--window-bar-stack-height) + var(--spacing-page-edge));
     }
   }
 </style>

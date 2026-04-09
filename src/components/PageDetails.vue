@@ -150,7 +150,7 @@
   }
 
   .deleteButton {
-    top: calc(var(--spacing-page-edge) / 2 + var(--window-bar-height));
+    top: calc(var(--spacing-page-edge) / 2 + var(--window-bar-stack-height));
     position: absolute;
     right: var(--spacing-page-edge);
     z-index: 727;
@@ -189,20 +189,22 @@
     .itemsContainer {
       column-count: 1;
     }
-
-    .deleteButton {
-      width: 4vw;
-      height: 4vw;
-    }
   }
 
   @media (max-width: 40rem) {
+    .itemPage {
+      box-sizing: border-box;
+      justify-content: flex-start;
+      min-height: 100%;
+      padding-top: var(--page-content-offset-top);
+    }
+
     .deleteButton {
-      top: calc(var(--padding-top-mobile) / 2 + var(--window-bar-height) + var(--spacing-page-edge));
+      top: calc(var(--window-bar-stack-height) + var(--spacing-page-edge));
     }
 
     .saveButton {
-      bottom: calc(var(--spacing-page-edge) + var(--padding-bottom-mobile));
+      bottom: calc(var(--spacing-page-edge) + var(--content-bottom-inset));
     }
   }
 </style>

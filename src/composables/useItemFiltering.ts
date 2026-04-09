@@ -1,6 +1,6 @@
 import { ref, computed, watch } from 'vue'
-import { type Item, status, getItems } from '../components/FeatureDatabase.vue'
-import { type SortBy, sortItems, mediaType, tags } from '../utils/types'
+import { type Item, status, getFilteredItems, getFilteredItemsCount } from '../components/FeatureDatabase.vue'
+import { type SortBy, sortItems, mediaType, type Tag } from '../utils/types'
 
 export function useItemFiltering(
   itemsProp?: Item[],
@@ -8,32 +8,66 @@ export function useItemFiltering(
   initialSortBy?: SortBy,
   initialLimit?: number,
   initialFilterSearch?: string,
-  initialFilterTags?: tags[],
+  initialFilterTags?: Tag[],
   initialFilterMediaType?: mediaType
 ) {
   const items = ref<Item[]>([])
+  const totalMatchingCount = ref(0)
   const filterLimit = ref<number | undefined>(initialLimit)
-  const filterSortBy = ref<SortBy>(initialSortBy!)
+  const filterSortBy = ref<SortBy>(initialSortBy || 'title')
   const currentFilterStatus = ref<status | undefined>(initialFilterStatus)
   const filterSearch = ref<string>(initialFilterSearch || '')
-  const filterTags = ref<tags[]>(initialFilterTags || [])
+  const filterTags = ref<Tag[]>(initialFilterTags || [])
   const filterMediaType = ref<mediaType | undefined>(initialFilterMediaType)
+  const effectiveLimit = computed(() => {
+    if (filterLimit.value === undefined || filterLimit.value <= 0) {
+      return undefined
+    }
+    return filterLimit.value
+  })
 
   async function loadItems() {
     if (itemsProp !== undefined) {
       items.value = itemsProp
+      totalMatchingCount.value = itemsProp.length
     } else {
-      items.value = await getItems()
+      const baseFilters = {
+        status: currentFilterStatus.value,
+        mediaType: filterMediaType.value,
+        search: filterSearch.value,
+        tags: filterTags.value,
+        sortBy: filterSortBy.value,
+      }
+
+      items.value = await getFilteredItems({
+        ...baseFilters,
+        limit: effectiveLimit.value
+      })
+      totalMatchingCount.value = await getFilteredItemsCount(baseFilters)
     }
   }
 
   watch(() => itemsProp, (newItems) => {
     if (newItems !== undefined) {
       items.value = newItems
+      totalMatchingCount.value = newItems.length
     }
   })
 
+  if (itemsProp === undefined) {
+    watch(
+      [currentFilterStatus, filterSortBy, filterLimit, filterSearch, filterTags, filterMediaType],
+      async () => {
+        await loadItems()
+      },
+      { deep: true }
+    )
+  }
+
   const searchFilteredItems = computed(() => {
+    if (itemsProp === undefined) {
+      return items.value
+    }
     if (!filterSearch.value.trim()) {
       return items.value
     }
@@ -47,6 +81,9 @@ export function useItemFiltering(
   })
 
   const mediaTypeFilteredItems = computed(() => {
+    if (itemsProp === undefined) {
+      return searchFilteredItems.value
+    }
     if (filterMediaType.value === undefined) {
       return searchFilteredItems.value
     }
@@ -54,6 +91,9 @@ export function useItemFiltering(
   })
 
   const tagsFilteredItems = computed(() => {
+    if (itemsProp === undefined) {
+      return mediaTypeFilteredItems.value
+    }
     if (filterTags.value.length === 0) {
       return mediaTypeFilteredItems.value
     }
@@ -63,6 +103,9 @@ export function useItemFiltering(
   })
 
   const statusFilteredItems = computed(() => {
+    if (itemsProp === undefined) {
+      return tagsFilteredItems.value
+    }
     if (currentFilterStatus.value === undefined) {
       return tagsFilteredItems.value
     }
@@ -72,14 +115,23 @@ export function useItemFiltering(
   const sortedItems = computed(() => sortItems(statusFilteredItems.value, filterSortBy.value))
 
   const filteredItems = computed(() => {
-    if (filterLimit.value === undefined) {
+    if (itemsProp === undefined) {
       return sortedItems.value
     }
-    return sortedItems.value.slice(0, filterLimit.value)
+    if (effectiveLimit.value === undefined) {
+      return sortedItems.value
+    }
+    return sortedItems.value.slice(0, effectiveLimit.value)
   })
 
   const hasMore = computed(() => {
-    return filterLimit.value !== undefined && sortedItems.value.length > filterLimit.value
+    if (effectiveLimit.value === undefined) {
+      return false
+    }
+    if (itemsProp === undefined) {
+      return totalMatchingCount.value > filteredItems.value.length
+    }
+    return sortedItems.value.length > effectiveLimit.value
   })
 
   return {

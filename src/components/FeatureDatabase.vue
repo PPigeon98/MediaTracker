@@ -1,6 +1,6 @@
 <script lang="ts">
   import Database from '@tauri-apps/plugin-sql';
-  import { mediaType, status, type progress, type Item } from '../utils/types';
+  import { mediaType, status, type progress, type Item, type SortBy, type Tag } from '../utils/types';
 
   let db: Database | null = null;
 
@@ -59,15 +59,19 @@
     return db;
   }
 
-  export { progressType, mediaType, tags, status, type progress, type Item } from '../utils/types';
+  export { progressType, mediaType, status, type progress, type Item } from '../utils/types';
 
-  export async function getItems(includeImages: boolean = false): Promise<Item[]> {
-    const database = await getDb();
-    const result = await database.select<any[]>(
-      'SELECT * FROM items ORDER BY title COLLATE NOCASE'
-    );
+  export interface ItemQueryFilters {
+    status?: status;
+    mediaType?: mediaType;
+    search?: string;
+    tags?: Tag[];
+    sortBy?: SortBy;
+    limit?: number;
+  }
 
-    const items = result.map((item: any) => ({
+  function parseDbItem(item: any): Item {
+    return {
       ...item,
       status: item.status as status,
       mediaType: item.mediaType as mediaType,
@@ -77,7 +81,65 @@
       otherNames: JSON.parse(item.otherNames),
       creators: JSON.parse(item.creators),
       imageSet: [] as string[]
-    }));
+    };
+  }
+
+  function escapeLike(value: string): string {
+    return value.replace(/\\/g, '\\\\').replace(/%/g, '\\%').replace(/_/g, '\\_');
+  }
+
+  function buildItemsWhere(filters: ItemQueryFilters): { whereClause: string; params: any[] } {
+    const clauses: string[] = [];
+    const params: any[] = [];
+
+    if (filters.status !== undefined) {
+      clauses.push(`status = $${params.length + 1}`);
+      params.push(filters.status);
+    }
+
+    if (filters.mediaType !== undefined) {
+      clauses.push(`mediaType = $${params.length + 1}`);
+      params.push(filters.mediaType);
+    }
+
+    if (filters.search && filters.search.trim()) {
+      const search = `%${escapeLike(filters.search.trim().toLowerCase())}%`;
+      const idx = params.length + 1;
+      clauses.push(`(
+        lower(title) LIKE $${idx} ESCAPE '\\'
+        OR lower(description) LIKE $${idx} ESCAPE '\\'
+        OR lower(otherNames) LIKE $${idx} ESCAPE '\\'
+        OR lower(creators) LIKE $${idx} ESCAPE '\\'
+      )`);
+      params.push(search);
+    }
+
+    if (filters.tags && filters.tags.length > 0) {
+      for (const tag of filters.tags) {
+        const idx = params.length + 1;
+        clauses.push(`lower(tags) LIKE $${idx} ESCAPE '\\'`);
+        params.push(`%\"${escapeLike(tag.toLowerCase())}\"%`);
+      }
+    }
+
+    const whereClause = clauses.length > 0 ? `WHERE ${clauses.join(' AND ')}` : '';
+    return { whereClause, params };
+  }
+
+  function getOrderBy(sortBy: SortBy | undefined): string {
+    if (sortBy === 'lastUpdated') {
+      return 'ORDER BY lastUpdated DESC';
+    }
+    return 'ORDER BY title COLLATE NOCASE';
+  }
+
+  export async function getItems(includeImages: boolean = false): Promise<Item[]> {
+    const database = await getDb();
+    const result = await database.select<any[]>(
+      'SELECT * FROM items ORDER BY title COLLATE NOCASE'
+    );
+
+    const items = result.map(parseDbItem);
 
     if (includeImages) {
       for (const item of items) {
@@ -86,6 +148,39 @@
     }
 
     return items;
+  }
+
+  export async function getFilteredItems(filters: ItemQueryFilters, includeImages: boolean = false): Promise<Item[]> {
+    const database = await getDb();
+    const { whereClause, params } = buildItemsWhere(filters);
+    const orderBy = getOrderBy(filters.sortBy);
+    const limitClause = filters.limit !== undefined ? `LIMIT $${params.length + 1}` : '';
+    const queryParams = filters.limit !== undefined ? [...params, filters.limit] : params;
+
+    const result = await database.select<any[]>(
+      `SELECT * FROM items ${whereClause} ${orderBy} ${limitClause}`.trim(),
+      queryParams
+    );
+
+    const items = result.map(parseDbItem);
+
+    if (includeImages) {
+      for (const item of items) {
+        item.imageSet = await getItemImages(item.id);
+      }
+    }
+
+    return items;
+  }
+
+  export async function getFilteredItemsCount(filters: ItemQueryFilters): Promise<number> {
+    const database = await getDb();
+    const { whereClause, params } = buildItemsWhere(filters);
+    const result = await database.select<{ count: number }[]>(
+      `SELECT COUNT(*) AS count FROM items ${whereClause}`.trim(),
+      params
+    );
+    return result[0]?.count ?? 0;
   }
 
   export async function getItemImages(itemId: number): Promise<string[]> {
@@ -177,6 +272,38 @@
       'DELETE FROM items WHERE id = $1',
       [item.id]
     );
+  }
+
+  export async function removeTagFromAllItems(tag: Tag): Promise<number> {
+    const normalizedTag = tag.trim().toLowerCase();
+    if (!normalizedTag) return 0;
+
+    const database = await getDb();
+    const rows = await database.select<{ id: number; tags: string }[]>(
+      'SELECT id, tags FROM items'
+    );
+
+    let updatedCount = 0;
+    for (const row of rows) {
+      let parsedTags: string[] = [];
+      try {
+        const value = JSON.parse(row.tags);
+        parsedTags = Array.isArray(value) ? value : [];
+      } catch {
+        parsedTags = [];
+      }
+
+      const nextTags = parsedTags.filter((itemTag) => itemTag.trim().toLowerCase() !== normalizedTag);
+      if (nextTags.length !== parsedTags.length) {
+        await database.execute('UPDATE items SET tags = $1 WHERE id = $2', [
+          JSON.stringify(nextTags),
+          row.id
+        ]);
+        updatedCount += 1;
+      }
+    }
+
+    return updatedCount;
   }
 
   export default {}
