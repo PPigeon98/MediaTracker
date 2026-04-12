@@ -18,6 +18,16 @@
           if pkgs ? libsoup_3 then pkgs.libsoup_3 else pkgs.libsoup;
       in
       {
+        packages = lib.optionalAttrs (lib.elem system [ "x86_64-linux" "aarch64-linux" ]) (
+          let
+            m = pkgs.callPackage ./nix/media-tracker.nix { };
+          in
+          {
+            media-tracker = m;
+            default = m;
+          }
+        );
+
         devShells.default = pkgs.mkShell {
           packages = with pkgs; [
             nodejs_22
@@ -36,6 +46,7 @@
             libsoup
             webkitgtk
             libayatana-appindicator
+            xdg-utils
           ];
 
           OPENSSL_DIR = "${pkgs.openssl.dev}";

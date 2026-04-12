@@ -31,5 +31,8 @@ npm npm run android:dev:adb
 
 The above opens a dev for desktop and mobile (using adb)
 
+### Note
+Remove mipmap-anydpi-v26 before building android -- adaptive icons don't look good
+
 ## TODO:
 - Maybe something with tags from the api

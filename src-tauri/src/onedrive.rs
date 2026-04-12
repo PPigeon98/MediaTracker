@@ -44,7 +44,6 @@ pub struct OauthPending(pub Arc<Mutex<Option<OauthPendingInner>>>);
 
 pub struct OauthPendingInner {
     pub expected_csrf: String,
-    pub code_verifier: String,
     pub reply: oneshot::Sender<Result<String, String>>,
 }
 
@@ -149,6 +148,10 @@ pub fn handle_oauth_redirect_url(app: &tauri::AppHandle, pending: &OauthPending,
     #[cfg(not(any(target_os = "android", target_os = "ios")))]
     if let Some(w) = app.get_webview_window("main") {
         let _ = w.set_focus();
+    }
+    #[cfg(any(target_os = "android", target_os = "ios"))]
+    {
+        let _ = app;
     }
 
     let _ = inner.reply.send(Ok(c));
@@ -297,7 +300,6 @@ pub async fn onedrive_sign_in(
         }
         *g = Some(OauthPendingInner {
             expected_csrf: csrf.clone(),
-            code_verifier: verifier.clone(),
             reply: reply_tx,
         });
     }
