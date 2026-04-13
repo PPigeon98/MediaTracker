@@ -22,6 +22,9 @@
     <div class="windowBarSettingsButton">
       <button @click="router.push('/Settings')" aria-label="Open settings">⚙</button>
     </div>
+    <div class="windowBarGraphButton">
+      <button @click="router.push('/Graph')" aria-label="Open graph">🕸</button>
+    </div>
     <div class="windowBarButtons">
       <button @click="minimise">─</button>
       <button @click="maximise">▢</button>
@@ -71,7 +74,8 @@
     top: 0;
   }
 
-  .windowBarSettingsButton button {
+  .windowBarSettingsButton button,
+  .windowBarGraphButton button {
     align-items: center;
     background: none;
     border: none;
@@ -83,8 +87,19 @@
     width: 6vh;
   }
 
-  .windowBarSettingsButton button:hover {
+  .windowBarSettingsButton button:hover,
+  .windowBarGraphButton button:hover {
     background-color: var(--colour-accent);
+  }
+
+  .windowBarGraphButton {
+    -webkit-app-region: no-drag;
+    align-items: center;
+    display: flex;
+    height: 100%;
+    left: 6vh;
+    position: absolute;
+    top: 0;
   }
 
   .windowBarButtons button {
@@ -118,8 +133,14 @@
 
   @media (max-width: 40rem) {
     .windowBarSettingsButton button,
+    .windowBarGraphButton button,
     .windowBarButtons button {
       font-size: 2.2vh;
+    }
+
+    .windowBarGraphButton {
+      left: auto;
+      right: 0;
     }
 
     .windowBarButtons {

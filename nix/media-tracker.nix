@@ -21,7 +21,7 @@
   libayatana-appindicator,
   copyDesktopItems,
   makeDesktopItem,
-  oneDriveClientId ? "00000000-0000-0000-0000-000000000000",
+  oneDriveClientId ? "6524f94b-35eb-46c1-84a6-53fd82ae1fa8",
 }:
 
 let

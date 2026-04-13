@@ -1,10 +1,10 @@
 <script setup lang="ts">
   import { useRoute } from 'vue-router'
-  import { ref, onMounted } from 'vue'
-  import { getItems, type Item } from './FeatureDatabase.vue'
+  import { ref, onMounted, computed } from 'vue'
+  import { getItems, getItemRelations, type Item, type ItemRelation } from './FeatureDatabase.vue'
   import { useItemForm } from '../composables/useItemForm'
   import { useItemOperations } from '../composables/useItemOperations'
-  import { mediaType, status } from '../utils/types'
+  import { mediaType, status, type SelectOption } from '../utils/types'
   import BaseButtonBack from './BaseButtonBack.vue'
   import BaseButtonSave from './BaseButtonSave.vue'
   import BaseButtonDelete from './BaseButtonDelete.vue'
@@ -16,6 +16,7 @@
   import BaseTextInput from './BaseTextInput.vue'
   import BaseSelect from './BaseSelect.vue'
   import BaseCheckbox from './BaseCheckbox.vue'
+  import BaseButton from './BaseButton.vue'
 
   const route = useRoute()
 
@@ -39,8 +40,19 @@
   })
   const { item, itemToFormItem, loadItemData, mediaTypeSelectOptions, statusSelectOptions } = useItemForm()
   const { handleQueueDeletion, handleCoverImageReplaced, saveItem, deleteItem } = useItemOperations()
+  const allItems = ref<Item[]>([])
+  const relations = ref<ItemRelation[]>([])
+
+  const relationOptions = computed<SelectOption[]>(() =>
+    allItems.value
+      .filter(i => i.id !== currentItem.value.id)
+      .map(i => ({ value: i.id, label: i.title || `Item #${i.id}` }))
+  )
 
   onMounted(async () => {
+    const items = await getItems()
+    allItems.value = items
+
     const itemParam = route.query.item
     const paramStr = itemParam as string
 
@@ -57,19 +69,27 @@
       }
     }
 
-    const items = await getItems()
     const dbItem = items.find(i => i.id === Number(itemParam))
     currentItem.value = dbItem!
     loadItemData(dbItem!)
+    relations.value = await getItemRelations(dbItem!.id)
   })
 
   async function save() {
-    const savedItem = await saveItem(currentItem.value, item.value)
+    const savedItem = await saveItem(currentItem.value, item.value, relations.value)
     currentItem.value = savedItem
   }
 
   async function handleDelete() {
     await deleteItem(currentItem.value)
+  }
+
+  function addRelation() {
+    relations.value.push({ relatedItemId: 0, description: '' })
+  }
+
+  function removeRelation(index: number) {
+    relations.value.splice(index, 1)
   }
 </script>
 
@@ -137,6 +157,23 @@
         <h1>Ongoing</h1>
         <BaseCheckbox text="Ongoing" :checked="item.ongoing" @update:checked="item.ongoing = $event" />
       </div>
+      <div>
+        <h1>Relationships</h1>
+        <div class="relationsSection">
+          <div v-for="(relation, index) in relations" :key="index" class="relationRow">
+            <BaseSelect
+              :options="relationOptions"
+              :model-value="relation.relatedItemId"
+              @update:model-value="(val) => relation.relatedItemId = Number(val)"
+            />
+            <BaseTextInput v-model="relation.description" placeholder="How are they related?" />
+            <div class="relationAction">
+              <BaseButton text="🗑" @click="removeRelation(index)" class="removeRelationButton" />
+            </div>
+          </div>
+          <BaseButton text="Add relation" @click="addRelation" />
+        </div>
+      </div>
     </div>
     <div>
       <FeatureGallery v-model:imageSet="item.imageSet" v-model:coverImage="item.coverImage" @queueDeletion="handleQueueDeletion" />
@@ -185,9 +222,54 @@
     z-index: 727;
   }
 
+  .relationsSection {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .relationRow {
+    align-items: center;
+    display: flex;
+    gap: calc(var(--gap-section) / 4);
+    margin-bottom: calc(var(--gap-section) / 2);
+  }
+
+  .relationRow :deep(.input),
+  .relationRow :deep(.selectTrigger) {
+    min-width: 0;
+  }
+
+  .relationRow > :not(.relationAction) {
+    flex: 1;
+  }
+
+  .removeRelationButton {
+    padding: 0;
+    width: 2.5vw;
+    height: 2.5vw;
+  }
+
+  .relationAction {
+    display: flex;
+    flex: 0 0 auto;
+  }
+
   @media (max-width: 50rem) {
     .itemsContainer {
       column-count: 1;
+    }
+
+    .relationRow {
+      flex-direction: column;
+      align-items: stretch;
+    }
+  }
+
+  @media (max-width: 40rem) {
+    .removeRelationButton {
+      width: 5vw;
+      height: 5vw;
     }
   }
 

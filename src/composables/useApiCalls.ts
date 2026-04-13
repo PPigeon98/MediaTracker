@@ -231,6 +231,137 @@ export async function googlebooksSearch(searchInput: string) {
   return data
 }
 
+const JIKAN_BASE = 'https://api.jikan.moe/v4'
+
+function jikanFetch(pathWithQuery: string) {
+  return fetch(`${JIKAN_BASE}${pathWithQuery}`, {
+    method: 'GET',
+    headers: { accept: 'application/json' },
+  })
+}
+
+export async function jikanAnimeSearch(searchInput: string) {
+  const q = encodeURIComponent(searchInput.trim())
+  const response = await jikanFetch(`/anime?q=${q}&limit=25&sfw=true`)
+
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`)
+  }
+
+  return response.json()
+}
+
+export async function jikanMangaSearch(searchInput: string) {
+  const q = encodeURIComponent(searchInput.trim())
+  const response = await jikanFetch(`/manga?q=${q}&limit=25&sfw=true`)
+
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`)
+  }
+
+  return response.json()
+}
+
+function stripJikanSynopsis(raw: string | null | undefined): string {
+  if (!raw) return ''
+  return raw
+    .replace(/<[^>]*>/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+function datePrefix(iso: string | null | undefined): string {
+  if (!iso) return ''
+  const m = /^(\d{4}-\d{2}-\d{2})/.exec(iso)
+  return m ? m[1] : ''
+}
+
+function jikanLargeCover(images: { jpg?: { large_image_url?: string }; webp?: { large_image_url?: string } } | undefined): string {
+  return images?.jpg?.large_image_url || images?.webp?.large_image_url || ''
+}
+
+function parseJikanAnime(data: any): Item[] {
+  if (!data?.data?.length) return []
+
+  return data.data.map((a: any) => {
+    const studios = ((a.studios as { name?: string }[] | undefined) ?? [])
+      .map(s => s.name)
+      .filter((n): n is string => Boolean(n))
+    const other: string[] = [
+      a.title_english,
+      a.title_japanese,
+      ...(a.title_synonyms || []),
+    ].filter(Boolean)
+
+    const maxEp = typeof a.episodes === 'number' && a.episodes > 0 ? a.episodes : 1
+    const ongoing = a.airing === true || a.status === 'Currently Airing'
+
+    return {
+      id: -1,
+      title: a.title || 'Unknown',
+      description: stripJikanSynopsis(a.synopsis),
+      lastUpdated: new Date().toISOString(),
+      coverImage: jikanLargeCover(a.images),
+      status: status.planned,
+      mediaType: mediaType.anime,
+      tags: [] as Tag[],
+      progress: [{
+        current: 0,
+        max: maxEp,
+        type: progressType.episode,
+      }],
+      ongoing,
+      imageSet: [] as string[],
+      notes: '',
+      otherNames: other,
+      creators: studios,
+      startDate: datePrefix(a.aired?.from),
+      endDate: datePrefix(a.aired?.to),
+    }
+  })
+}
+
+function parseJikanManga(data: any): Item[] {
+  if (!data?.data?.length) return []
+
+  return data.data.map((m: any) => {
+    const authors = ((m.authors as { name?: string }[] | undefined) ?? [])
+      .map(x => x.name)
+      .filter((n): n is string => Boolean(n))
+    const other: string[] = [
+      m.title_english,
+      m.title_japanese,
+      ...(m.title_synonyms || []),
+    ].filter(Boolean)
+
+    const maxCh = typeof m.chapters === 'number' && m.chapters > 0 ? m.chapters : 1
+    const ongoing = m.publishing === true || m.status === 'Publishing'
+
+    return {
+      id: -1,
+      title: m.title || 'Unknown',
+      description: stripJikanSynopsis(m.synopsis),
+      lastUpdated: new Date().toISOString(),
+      coverImage: jikanLargeCover(m.images),
+      status: status.planned,
+      mediaType: mediaType.manga,
+      tags: [] as Tag[],
+      progress: [{
+        current: 0,
+        max: maxCh,
+        type: progressType.chapter,
+      }],
+      ongoing,
+      imageSet: [] as string[],
+      notes: '',
+      otherNames: other,
+      creators: authors,
+      startDate: datePrefix(m.published?.from),
+      endDate: datePrefix(m.published?.to),
+    }
+  })
+}
+
 // Tag mapping helpers are temporarily disabled.
 // function mapCountryToTag(countryOfOrigin: string | null | undefined): Tag | null {
 //   if (!countryOfOrigin) return null
@@ -562,11 +693,20 @@ function parseGoogleBooks(data: any): Item[] {
 }
 
 export async function search(searchInput: string): Promise<Item[]> {
-  const [anilistData, tmdbMovieData, tmdbSeriesData, googleBooksData] = await Promise.allSettled([
+  const [
+    anilistData,
+    tmdbMovieData,
+    tmdbSeriesData,
+    googleBooksData,
+    jikanAnimeData,
+    jikanMangaData,
+  ] = await Promise.allSettled([
     anilistSearch(searchInput),
     tmdbMovieSearch(searchInput),
     tmdbSeriesSearch(searchInput),
-    googlebooksSearch(searchInput)
+    googlebooksSearch(searchInput),
+    jikanAnimeSearch(searchInput),
+    jikanMangaSearch(searchInput),
   ])
 
   const items: Item[] = []
@@ -587,6 +727,14 @@ export async function search(searchInput: string): Promise<Item[]> {
 
   if (googleBooksData.status === 'fulfilled') {
     items.push(...parseGoogleBooks(googleBooksData.value))
+  }
+
+  if (jikanAnimeData.status === 'fulfilled') {
+    items.push(...parseJikanAnime(jikanAnimeData.value))
+  }
+
+  if (jikanMangaData.status === 'fulfilled') {
+    items.push(...parseJikanManga(jikanMangaData.value))
   }
 
   return items

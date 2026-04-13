@@ -55,6 +55,23 @@
       await db.execute(`
         CREATE INDEX IF NOT EXISTS idx_item_images_itemId ON item_images(itemId, imageOrder)
       `);
+      await db.execute(`
+        CREATE TABLE IF NOT EXISTS item_relations (
+          id            INTEGER PRIMARY KEY AUTOINCREMENT,
+          itemId        INTEGER NOT NULL,
+          relatedItemId INTEGER NOT NULL,
+          description   TEXT NOT NULL DEFAULT '',
+          FOREIGN KEY (itemId) REFERENCES items(id) ON DELETE CASCADE,
+          FOREIGN KEY (relatedItemId) REFERENCES items(id) ON DELETE CASCADE,
+          UNIQUE (itemId, relatedItemId)
+        )
+      `);
+      await db.execute(`
+        CREATE INDEX IF NOT EXISTS idx_item_relations_itemId ON item_relations(itemId)
+      `);
+      await db.execute(`
+        CREATE INDEX IF NOT EXISTS idx_item_relations_relatedItemId ON item_relations(relatedItemId)
+      `);
     }
     return db;
   }
@@ -68,6 +85,11 @@
     tags?: Tag[];
     sortBy?: SortBy;
     limit?: number;
+  }
+
+  export interface ItemRelation {
+    relatedItemId: number;
+    description: string;
   }
 
   function parseDbItem(item: any): Item {
@@ -234,6 +256,32 @@
       await database.execute(
         'INSERT INTO item_images (itemId, imagePath, imageOrder) VALUES ($1, $2, $3)',
         [itemId, imagePaths[i], i]
+      );
+    }
+  }
+
+  export async function getItemRelations(itemId: number): Promise<ItemRelation[]> {
+    const database = await getDb();
+    const result = await database.select<{ relatedItemId: number; description: string }[]>(
+      'SELECT relatedItemId, description FROM item_relations WHERE itemId = $1 ORDER BY id',
+      [itemId]
+    );
+    return result.map((row) => ({
+      relatedItemId: Number(row.relatedItemId),
+      description: row.description ?? ''
+    }));
+  }
+
+  export async function setItemRelations(itemId: number, relations: ItemRelation[]): Promise<void> {
+    const database = await getDb();
+    await database.execute('DELETE FROM item_relations WHERE itemId = $1', [itemId]);
+    for (const relation of relations) {
+      if (!relation.relatedItemId || relation.relatedItemId === itemId) {
+        continue;
+      }
+      await database.execute(
+        'INSERT OR REPLACE INTO item_relations (itemId, relatedItemId, description) VALUES ($1, $2, $3)',
+        [itemId, relation.relatedItemId, relation.description.trim()]
       );
     }
   }

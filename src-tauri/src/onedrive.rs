@@ -1,11 +1,3 @@
-//! OneDrive via Microsoft Graph (OAuth 2.0 PKCE). Browser sign-in → redirect **`media-tracker://oauth`** → app.
-//!
-//! **Publisher:** register one [Entra app](https://entra.microsoft.com/) (mobile/desktop public client), redirect
-//! `media-tracker://oauth`, Graph delegated `Files.ReadWrite` + `offline_access`.
-//! The Application (client) ID **must** be supplied at **compile time** only:
-//! `MEDIATRACKER_ONEDRIVE_CLIENT_ID=<guid> cargo build` / `tauri build` (not a secret for native PKCE).
-//! Builds without it cannot use OneDrive (sign-in and sync operations fail with a clear error).
-
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
 use rand::RngCore;
 use serde::{Deserialize, Serialize};
@@ -20,10 +12,11 @@ pub const OAUTH_REDIRECT_URI: &str = "media-tracker://oauth";
 
 const GRAPH_ITEM_PATH: &str = "Apps/media-tracker/sync-data.json";
 
-fn embedded_client_id() -> Option<&'static str> {
+fn embedded_client_id() -> &'static str {
     option_env!("MEDIATRACKER_ONEDRIVE_CLIENT_ID")
         .map(str::trim)
         .filter(|s| !s.is_empty())
+        .unwrap_or("6524f94b-35eb-46c1-84a6-53fd82ae1fa8")
 }
 
 #[derive(Serialize, Deserialize)]
@@ -251,10 +244,7 @@ async fn refresh_tokens(
 }
 
 async fn ensure_access_token(app: &tauri::AppHandle) -> Result<String, String> {
-    let client_id = embedded_client_id().ok_or_else(|| {
-        "This build has no OneDrive client id. Rebuild with MEDIATRACKER_ONEDRIVE_CLIENT_ID set to your Entra Application (client) ID."
-            .to_string()
-    })?;
+    let client_id = embedded_client_id();
     let mut cache = read_tokens(app)?;
     let client = reqwest::Client::new();
     if chrono::Utc::now().timestamp() >= cache.expires_at_unix {
@@ -269,10 +259,7 @@ pub async fn onedrive_sign_in(
     app: tauri::AppHandle,
     pending: tauri::State<'_, OauthPending>,
 ) -> Result<(), String> {
-    let effective = embedded_client_id().ok_or_else(|| {
-        "This build has no OneDrive client id. Rebuild with MEDIATRACKER_ONEDRIVE_CLIENT_ID=<Application (client) ID> (compile-time only)."
-            .to_string()
-    })?;
+    let effective = embedded_client_id();
     let settings = OnedriveSettings {
         client_id: effective.to_string(),
     };

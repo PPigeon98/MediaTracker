@@ -6,6 +6,7 @@ import PageSplash from '../components/PageSplash.vue';
 import PageLibrary from '../components/PageLibrary.vue';
 import { status } from '../utils/types';
 import PageSettings from '../components/PageSettings.vue';
+import PageGraph from '../components/PageGraph.vue';
 
 export const router = createRouter({
   history: createWebHistory(),
@@ -31,6 +32,10 @@ export const router = createRouter({
       component: PageSettings
     },
     {
+      path: '/Graph',
+      component: PageGraph
+    },
+    {
       path: '/Library',
       component: PageLibrary,
       props: (route: any) => {
@@ -51,4 +56,3 @@ export const router = createRouter({
     }
   ]
 });
-

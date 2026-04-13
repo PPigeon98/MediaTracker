@@ -1,6 +1,6 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { addItem, updateItem, getItems, getItemImages, deleteItem as deleteItemFromDb, type Item } from '../components/FeatureDatabase.vue'
+import { addItem, updateItem, getItems, getItemImages, setItemRelations, deleteItem as deleteItemFromDb, type Item, type ItemRelation } from '../components/FeatureDatabase.vue'
 import { isExternalImage, splitLines } from '../utils/types'
 import { saveImageAsFile, getImagePath, deleteImage } from '../components/FeatureAssets.vue'
 import { remove, exists, BaseDirectory } from '@tauri-apps/plugin-fs'
@@ -34,7 +34,8 @@ export function useItemOperations() {
       creators: string
       startDate: string
       endDate: string
-    }
+    },
+    relations: ItemRelation[]
   ) {
     let itemId = currentItem.id
 
@@ -107,6 +108,7 @@ export function useItemOperations() {
     }
 
     await updateItem(dbItem)
+    await setItemRelations(dbItem.id, relations)
 
     for (const imageSrc of deletionQueue.value) {
       try {
