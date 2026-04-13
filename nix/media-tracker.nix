@@ -103,8 +103,9 @@ rustPlatform.buildRustPackage {
       name = pname;
       desktopName = "Media Tracker";
       comment = "Track anime, manga, books, games, and similar media";
-      exec = pname;
+      exec = "${pname} %u";
       icon = pname;
+      mimeTypes = [ "x-scheme-handler/media-tracker" ];
       categories = [
         "Utility"
         "Office"
