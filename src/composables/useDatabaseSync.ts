@@ -3,7 +3,7 @@ import { invoke } from '@tauri-apps/api/core'
 import { open, save } from '@tauri-apps/plugin-dialog'
 import { readTextFile, writeTextFile, readFile, exists, remove, BaseDirectory } from '@tauri-apps/plugin-fs'
 import Database from '@tauri-apps/plugin-sql'
-import { getItems, addItem, updateItem, deleteItem, type Item } from '../components/FeatureDatabase.vue'
+import { getItems, addItem, updateItem, deleteItem, getItemRelations, setItemRelations, type Item, type ItemRelation } from '../components/FeatureDatabase.vue'
 import { saveImageAsFile } from '../components/FeatureAssets.vue'
 
 export interface SyncData {
@@ -15,6 +15,7 @@ export interface SyncData {
 interface ItemWithBase64Images extends Omit<Item, 'coverImage' | 'imageSet'> {
   coverImage?: string
   imageSet?: string[]
+  relations?: ItemRelation[]
 }
 
 const ONEDRIVE_STAGING_PUSH = 'onedrive_sync_push.json'
@@ -72,10 +73,12 @@ export function useDatabaseSync() {
     const itemsWithBase64: ItemWithBase64Images[] = []
 
     for (const item of items) {
+      const relations = await getItemRelations(item.id)
       const itemWithBase64: ItemWithBase64Images = {
         ...item,
         coverImage: item.coverImage ? await imagePathToBase64(item.coverImage) : '',
-        imageSet: []
+        imageSet: [],
+        relations
       }
 
       if (item.imageSet && item.imageSet.length > 0) {
@@ -112,7 +115,9 @@ export function useDatabaseSync() {
     }
 
     let imported = 0
+    const importedIdToNewId = new Map<number, number>()
     for (const item of syncData.items) {
+      const sourceId = item.id
       const newItem: Item = {
         ...item,
         id: 0,
@@ -120,6 +125,7 @@ export function useDatabaseSync() {
         imageSet: []
       }
       const newItemId = await addItem(newItem)
+      importedIdToNewId.set(sourceId, newItemId)
 
       let coverImagePath = ''
       const imageSetPaths: string[] = []
@@ -155,6 +161,19 @@ export function useDatabaseSync() {
       imported++
     }
 
+    for (const item of syncData.items) {
+      const sourceId = item.id
+      const newItemId = importedIdToNewId.get(sourceId)
+      if (!newItemId) continue
+      const mappedRelations: ItemRelation[] = (item.relations ?? [])
+        .map((rel) => ({
+          relatedItemId: importedIdToNewId.get(rel.relatedItemId) ?? 0,
+          description: rel.description ?? ''
+        }))
+        .filter((rel) => rel.relatedItemId > 0)
+      await setItemRelations(newItemId, mappedRelations)
+    }
+
     return imported
   }
 
@@ -173,6 +192,7 @@ export function useDatabaseSync() {
 
     let added = 0
     let updated = 0
+    const importedIdToActualId = new Map<number, number>()
 
     async function addItemWithId(item: Item, desiredId: number): Promise<number> {
       if (existingById.has(desiredId)) {
@@ -251,6 +271,7 @@ export function useDatabaseSync() {
       const existing = existingByIdAndTitle.get(matchKey)
 
       if (existing) {
+        importedIdToActualId.set(item.id, existing.id)
         const existingDate = new Date(existing.lastUpdated)
         const importedDate = new Date(item.lastUpdated)
 
@@ -293,6 +314,7 @@ export function useDatabaseSync() {
           imageSet: []
         }
         const newItemId = await addItemWithId(newItem, item.id)
+        importedIdToActualId.set(item.id, newItemId)
 
         let coverImagePath = ''
         const imageSetPaths: string[] = []
@@ -327,6 +349,23 @@ export function useDatabaseSync() {
 
         added++
       }
+    }
+
+    for (const importedItem of syncData.items) {
+      const actualItemId = importedIdToActualId.get(importedItem.id)
+      if (!actualItemId) continue
+      const relationRows: ItemRelation[] = (importedItem.relations ?? [])
+        .map((rel) => {
+          const mappedTargetId = importedIdToActualId.get(rel.relatedItemId)
+            ?? (existingById.has(rel.relatedItemId) ? rel.relatedItemId : 0)
+          return {
+            relatedItemId: mappedTargetId,
+            description: rel.description ?? ''
+          }
+        })
+        .filter((rel) => rel.relatedItemId > 0)
+
+      await setItemRelations(actualItemId, relationRows)
     }
 
     return { added, updated }

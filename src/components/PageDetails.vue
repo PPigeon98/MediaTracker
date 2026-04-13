@@ -164,9 +164,10 @@
             <BaseSelect
               :options="relationOptions"
               :model-value="relation.relatedItemId"
+              class="relationSelectInput"
               @update:model-value="(val) => relation.relatedItemId = Number(val)"
             />
-            <BaseTextInput v-model="relation.description" placeholder="How are they related?" />
+            <BaseTextInput v-model="relation.description" placeholder="How are they related?" class="relationDescriptionInput" />
             <div class="relationAction">
               <BaseButton text="🗑" @click="removeRelation(index)" class="removeRelationButton" />
             </div>
@@ -242,6 +243,14 @@
 
   .relationRow > :not(.relationAction) {
     flex: 1;
+  }
+
+  .relationDescriptionInput {
+    min-width: 14rem;
+  }
+
+  .relationSelectInput {
+    max-width: 18rem;
   }
 
   .removeRelationButton {
