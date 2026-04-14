@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { ref } from 'vue'
+  import { computed, ref } from 'vue'
   import { removeTagFromAllItems } from './FeatureDatabase.vue'
   import { useLocalStorage } from '../composables/useLocalStorage'
   import { useCustomTags } from '../composables/useCustomTags'
@@ -9,7 +9,65 @@
   import BaseTextInput from './BaseTextInput.vue'
   import FeatureSync from './FeatureSync.vue'
 
-  const tmdbApiKey = useLocalStorage<string>('apiKeys', '')
+  type ApiKeys = {
+    tmdb: string;
+    neodb: string;
+    hardcover: string;
+    rawg: string;
+  }
+
+  const apiKeys = useLocalStorage<ApiKeys | string>('apiKeys', {
+    tmdb: '',
+    neodb: '',
+    hardcover: '',
+    rawg: '',
+  })
+
+  function keysObject(): ApiKeys {
+    const v = apiKeys.value
+    if (typeof v === 'string') {
+      return {
+        tmdb: v,
+        neodb: '',
+        hardcover: '',
+        rawg: '',
+      }
+    }
+    return {
+      tmdb: v.tmdb ?? '',
+      neodb: v.neodb ?? '',
+      hardcover: v.hardcover ?? '',
+      rawg: v.rawg ?? '',
+    }
+  }
+
+  const tmdbApiKey = computed({
+    get: () => keysObject().tmdb,
+    set: (value: string) => {
+      apiKeys.value = { ...keysObject(), tmdb: value }
+    },
+  })
+
+  const neoDbAccessToken = computed({
+    get: () => keysObject().neodb,
+    set: (value: string) => {
+      apiKeys.value = { ...keysObject(), neodb: value }
+    },
+  })
+
+  const hardcoverApiKey = computed({
+    get: () => keysObject().hardcover,
+    set: (value: string) => {
+      apiKeys.value = { ...keysObject(), hardcover: value }
+    },
+  })
+
+  const rawgApiKey = computed({
+    get: () => keysObject().rawg,
+    set: (value: string) => {
+      apiKeys.value = { ...keysObject(), rawg: value }
+    },
+  })
   const { typeColors, typeColorOptions } = useTypeColors()
   const { sortedCustomTags, addTag, removeTag } = useCustomTags()
   const newTag = ref('')
@@ -36,6 +94,36 @@
         v-model="tmdbApiKey"
         type="text"
         placeholder="Enter your API key"
+        class="apiKeyInput"
+      />
+    </div>
+
+    <div class="settingsSection">
+      <h2>NeoDB Access Token</h2>
+      <BaseTextInput
+        v-model="neoDbAccessToken"
+        type="text"
+        placeholder="Paste token (with or without Bearer)"
+        class="apiKeyInput"
+      />
+    </div>
+
+    <div class="settingsSection">
+      <h2>Hardcover API Key</h2>
+      <BaseTextInput
+        v-model="hardcoverApiKey"
+        type="text"
+        placeholder="Paste token (with or without Bearer)"
+        class="apiKeyInput"
+      />
+    </div>
+
+    <div class="settingsSection">
+      <h2>RAWG API Key</h2>
+      <BaseTextInput
+        v-model="rawgApiKey"
+        type="text"
+        placeholder="Enter your RAWG API key"
         class="apiKeyInput"
       />
     </div>

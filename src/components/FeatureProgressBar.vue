@@ -1,9 +1,13 @@
 <script setup lang="ts">
-  import { type progress, progressTypeLabelsLowercase } from '../utils/types'
+  import { type progress, getProgressTypeLabel } from '../utils/types'
 
-  defineProps<{
+  import { computed } from 'vue'
+
+  const props = defineProps<{
     progress: progress[]
   }>()
+
+  const visibleProgressRows = computed(() => props.progress.filter(p => p.hiddenInCard !== true))
 
   function getProgressTextClasses(index: number, total: number) {
     return {
@@ -25,12 +29,12 @@
 </script>
 
 <template>
-  <div v-for="(prog, index) in progress" :key="index" class="progressContainer">
-    <p class="progressText" :class="getProgressTextClasses(index, progress.length)">{{ prog.current }} out of {{ prog.max }} {{ progressTypeLabelsLowercase[prog.type] }}</p>
+  <div v-for="(prog, index) in visibleProgressRows" :key="index" class="progressContainer">
+    <p class="progressText" :class="getProgressTextClasses(index, visibleProgressRows.length)">{{ prog.current }} out of {{ prog.max }} {{ getProgressTypeLabel(prog.type, true) }}</p>
     <div class="progressBar"
       :style="{ width: `${prog.current / prog.max * 100}%` }"
       :class="getProgressBarClasses(prog.current, prog.max)">
-      <p class="progressTextInverted" :class="getProgressTextInvertedClasses(index, progress.length)">{{ prog.current }} out of {{ prog.max }} {{ progressTypeLabelsLowercase[prog.type] }}</p>
+      <p class="progressTextInverted" :class="getProgressTextInvertedClasses(index, visibleProgressRows.length)">{{ prog.current }} out of {{ prog.max }} {{ getProgressTypeLabel(prog.type, true) }}</p>
     </div>
   </div>
 </template>

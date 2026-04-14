@@ -1,6 +1,6 @@
 <script lang="ts">
   import Database from '@tauri-apps/plugin-sql';
-  import { mediaType, status, type progress, type Item, type SortBy, type Tag } from '../utils/types';
+  import { mediaType, status, type progress, type Item, type SortBy, type Tag, normalizeProgressEntries } from '../utils/types';
 
   let db: Database | null = null;
 
@@ -23,9 +23,15 @@
           otherNames  TEXT,
           creators    TEXT,
           startDate   TEXT,
-          endDate     TEXT
+          endDate     TEXT,
+          flagLabel   TEXT NOT NULL DEFAULT 'ongoing'
         )
       `);
+      try {
+        await db.execute(`ALTER TABLE items ADD COLUMN flagLabel TEXT NOT NULL DEFAULT 'ongoing'`);
+      } catch {
+        // Column already exists on upgraded databases.
+      }
 
       await db.execute(`
         CREATE INDEX IF NOT EXISTS idx_items_title ON items(title COLLATE NOCASE)
@@ -93,15 +99,48 @@
   }
 
   function parseDbItem(item: any): Item {
+    let tags: Tag[] = []
+    let progressRows: progress[] = []
+    let otherNames: string[] = []
+    let creators: string[] = []
+
+    try {
+      const parsedTags = JSON.parse(item.tags)
+      tags = Array.isArray(parsedTags) ? parsedTags : []
+    } catch {
+      tags = []
+    }
+
+    try {
+      progressRows = normalizeProgressEntries(JSON.parse(item.progress))
+    } catch {
+      progressRows = []
+    }
+
+    try {
+      const parsedOther = JSON.parse(item.otherNames)
+      otherNames = Array.isArray(parsedOther) ? parsedOther : []
+    } catch {
+      otherNames = []
+    }
+
+    try {
+      const parsedCreators = JSON.parse(item.creators)
+      creators = Array.isArray(parsedCreators) ? parsedCreators : []
+    } catch {
+      creators = []
+    }
+
     return {
       ...item,
       status: item.status as status,
       mediaType: item.mediaType as mediaType,
       ongoing: Boolean(item.ongoing),
-      tags: JSON.parse(item.tags),
-      progress: JSON.parse(item.progress) as progress[],
-      otherNames: JSON.parse(item.otherNames),
-      creators: JSON.parse(item.creators),
+      flagLabel: item.flagLabel === 'downloaded' ? 'downloaded' : 'ongoing',
+      tags,
+      progress: progressRows,
+      otherNames,
+      creators,
       imageSet: [] as string[]
     };
   }
@@ -217,8 +256,8 @@
   export async function addItem(item: Item): Promise<number> {
     const database = await getDb();
     const result = await database.execute(
-      `INSERT INTO items (title, description, lastUpdated, coverImage, status, mediaType, tags, progress, ongoing, notes, otherNames, creators, startDate, endDate)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`,
+      `INSERT INTO items (title, description, lastUpdated, coverImage, status, mediaType, tags, progress, ongoing, notes, otherNames, creators, startDate, endDate, flagLabel)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`,
       [
         item.title,
         item.description,
@@ -233,7 +272,8 @@
         JSON.stringify(item.otherNames),
         JSON.stringify(item.creators),
         item.startDate,
-        item.endDate
+        item.endDate,
+        item.flagLabel === 'downloaded' ? 'downloaded' : 'ongoing'
       ]
     );
 
@@ -289,7 +329,7 @@
   export async function updateItem(item: Item): Promise<void> {
     const database = await getDb();
     await database.execute(
-      `UPDATE items SET title = $1, description = $2, lastUpdated = $3, coverImage = $4, status = $5, mediaType = $6, tags = $7, progress = $8, ongoing = $9, notes = $10, otherNames = $11, creators = $12, startDate = $13, endDate = $14 WHERE id = $15`,
+      `UPDATE items SET title = $1, description = $2, lastUpdated = $3, coverImage = $4, status = $5, mediaType = $6, tags = $7, progress = $8, ongoing = $9, notes = $10, otherNames = $11, creators = $12, startDate = $13, endDate = $14, flagLabel = $15 WHERE id = $16`,
       [
         item.title,
         item.description,
@@ -305,6 +345,7 @@
         JSON.stringify(item.creators),
         item.startDate,
         item.endDate,
+        item.flagLabel === 'downloaded' ? 'downloaded' : 'ongoing',
         item.id
       ]
     );

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { type Item, typeVariableNames } from '../utils/types'
+  import { mediaType, type Item, typeVariableNames } from '../utils/types'
   import tempCardImage from '../assets/Template.png'
   import { computed } from 'vue'
   import { useImageLoader } from '../composables/useImageLoader'
@@ -28,7 +28,7 @@
       <img :src="imageSrc || tempCardImage" :alt="item.title" class="cardImage">
       <FeatureType :type="item.mediaType" class="type" />
       <div v-if="item.ongoing" class="ongoingSlot">
-        <FeatureOngoing />
+        <FeatureOngoing :text="item.mediaType === mediaType.game ? 'Downloaded' : (item.mediaType === mediaType.other && item.flagLabel === 'downloaded' ? 'Downloaded' : 'Ongoing')" />
       </div>
     </div>
     <h2>{{ item.title }}</h2>

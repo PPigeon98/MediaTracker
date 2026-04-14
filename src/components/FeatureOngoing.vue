@@ -1,6 +1,12 @@
+<script setup lang="ts">
+  withDefaults(defineProps<{ text?: string }>(), {
+    text: 'Ongoing'
+  })
+</script>
+
 <template>
   <div class="ongoingEar">
-    <span class="ongoingText">Ongoing</span>
+    <span class="ongoingText">{{ text }}</span>
   </div>
 </template>
 

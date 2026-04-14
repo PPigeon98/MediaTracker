@@ -5,3 +5,12 @@ declare module "*.vue" {
   const component: DefineComponent<{}, {}, any>;
   export default component;
 }
+
+declare module "@jamescoyle/vue-icon" {
+  import type { DefineComponent } from "vue";
+  const component: DefineComponent<{
+    type?: string;
+    path?: string;
+  }, {}, any>;
+  export default component;
+}

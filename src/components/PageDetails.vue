@@ -48,6 +48,16 @@
       .filter(i => i.id !== currentItem.value.id)
       .map(i => ({ value: i.id, label: i.title || `Item #${i.id}` }))
   )
+  const flagLabelOptions: SelectOption[] = [
+    { value: 'ongoing', label: 'Ongoing' },
+    { value: 'downloaded', label: 'Downloaded' },
+  ]
+  const effectiveFlagLabel = computed<'ongoing' | 'downloaded'>(() => {
+    if (item.value.mediaTypeValue === mediaType.game) return 'downloaded'
+    if (item.value.mediaTypeValue === mediaType.other) return item.value.flagLabel
+    return 'ongoing'
+  })
+  const ongoingLabel = computed(() => effectiveFlagLabel.value === 'downloaded' ? 'Downloaded' : 'Ongoing')
 
   onMounted(async () => {
     const items = await getItems()
@@ -154,8 +164,14 @@
         <BaseTextInput v-model="item.endDate" placeholder="End Date" />
       </div>
       <div>
-        <h1>Ongoing</h1>
-        <BaseCheckbox text="Ongoing" :checked="item.ongoing" @update:checked="item.ongoing = $event" />
+        <h1>{{ ongoingLabel }}</h1>
+        <BaseSelect
+          v-if="item.mediaTypeValue === mediaType.other"
+          :options="flagLabelOptions"
+          :model-value="item.flagLabel"
+          @update:model-value="(val) => item.flagLabel = val as 'ongoing' | 'downloaded'"
+        />
+        <BaseCheckbox :text="ongoingLabel" :checked="item.ongoing" @update:checked="item.ongoing = $event" />
       </div>
       <div>
         <h1>Relationships</h1>
@@ -169,7 +185,7 @@
             />
             <BaseTextInput v-model="relation.description" placeholder="How are they related?" class="relationDescriptionInput" />
             <div class="relationAction">
-              <BaseButton text="🗑" @click="removeRelation(index)" class="removeRelationButton" />
+              <BaseButton text="" icon="delete" aria-label="Remove relation" @click="removeRelation(index)" class="removeRelationButton" />
             </div>
           </div>
           <BaseButton text="Add relation" @click="addRelation" />

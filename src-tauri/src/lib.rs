@@ -1,4 +1,6 @@
 mod onedrive;
+mod hardcover;
+mod modrinth;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -49,6 +51,8 @@ pub fn run() {
             onedrive::onedrive_status,
             onedrive::onedrive_push,
             onedrive::onedrive_pull,
+            hardcover::hardcover_search_books,
+            modrinth::modrinth_search_projects,
         ])
         .setup(|app| {
             use std::ops::Deref;

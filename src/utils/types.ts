@@ -38,7 +38,8 @@ export enum status {
 export interface progress {
   current: number;
   max: number;
-  type: progressType;
+  type: progressType | string;
+  hiddenInCard?: boolean;
 }
 
 export interface Item {
@@ -58,6 +59,7 @@ export interface Item {
   startDate: string;
   endDate: string;
   ongoing: boolean;
+  flagLabel?: 'ongoing' | 'downloaded';
 }
 
 export interface SelectOption {
@@ -109,6 +111,51 @@ export const progressTypeLabelsLowercase: Record<progressType, string> = {
   [progressType.season]: 'seasons',
   [progressType.arc]: 'arcs',
   [progressType.part]: 'parts',
+}
+
+export function isBuiltInProgressType(value: unknown): value is progressType {
+  return typeof value === 'number' && getNumericEnumValues(progressType).includes(value)
+}
+
+export function getProgressTypeLabel(value: progressType | string, lowercase = false): string {
+  if (isBuiltInProgressType(value)) {
+    return lowercase ? progressTypeLabelsLowercase[value] : progressTypeLabels[value]
+  }
+
+  const label = String(value || '').trim()
+  if (!label) return lowercase ? 'parts' : 'Parts'
+  return lowercase ? label.toLowerCase() : label
+}
+
+function toNonNegativeNumber(value: unknown, fallback: number): number {
+  const num = typeof value === 'number' ? value : Number(value)
+  if (!Number.isFinite(num)) return fallback
+  return Math.max(0, num)
+}
+
+export function normalizeProgressEntries(raw: unknown): progress[] {
+  if (!Array.isArray(raw)) return []
+
+  return raw.map((entry: any) => {
+    const max = toNonNegativeNumber(entry?.max, 1)
+    const current = Math.min(toNonNegativeNumber(entry?.current, 0), max)
+
+    let type: progressType | string
+    if (isBuiltInProgressType(entry?.type)) {
+      type = entry.type
+    } else if (typeof entry?.type === 'string' && entry.type.trim()) {
+      type = entry.type.trim()
+    } else {
+      type = progressType.part
+    }
+
+    return {
+      current,
+      max,
+      type,
+      hiddenInCard: entry?.hiddenInCard === true,
+    }
+  })
 }
 
 export const mediaTypeLabels: Record<mediaType, string> = {

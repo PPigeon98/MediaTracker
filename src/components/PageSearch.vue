@@ -40,20 +40,9 @@
     <BaseButton text="Manual Add" @click="router.push('/Details')" class="addItemButton" />
     <h1 class="searchTitle">Search Media</h1>
     <div class="searchInputContainer">
-      <button class="searchButton filterButton" type="button" @click="showFilters = !showFilters">
-        <svg class="filterIcon" viewBox="0 0 24 24" aria-hidden="true">
-          <path
-            d="M3 5H21L14 13V19L10 21V13L3 5Z"
-            fill="none"
-            stroke="var(--colour-primary)"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          />
-        </svg>
-      </button>
+      <BaseButton text="" icon="filter" aria-label="Toggle filters" @click="showFilters = !showFilters" class="searchButton mauveIconButton" />
       <BaseTextInput v-model="searchInput" placeholder="Search for media here..." @keyup.enter="search" class="searchInput" />
-      <BaseButton text="🔍︎" @click="search()" class="searchButton" />
+      <BaseButton text="" icon="search" aria-label="Search" @click="search()" class="searchButton mauveIconButton" />
     </div>
     <h1 v-if="loading" class="statusMessage">Loading...</h1>
     <h1 v-else-if="hasSearched && items.length === 0" class="statusMessage">No results found</h1>
@@ -85,19 +74,32 @@
     width: var(--spacing-button-small);
   }
 
-  .filterButton {
-    align-items: center;
-    background-color: var(--colour-base-100);
-    border: var(--border) solid var(--colour-primary);
-    border-radius: var(--radius-input);
-    cursor: pointer;
-    display: flex;
-    justify-content: center;
+  .mauveIconButton :deep(svg),
+  .mauveIconButton :deep(.button),
+  .mauveIconButton :deep(.icon),
+  .mauveIconButton :deep(path),
+  .mauveIconButton :deep(circle),
+  .mauveIconButton :deep(rect),
+  .mauveIconButton :deep(polygon),
+  .mauveIconButton :deep(polyline),
+  .mauveIconButton :deep(line) {
+    color: var(--colour-primary) !important;
+    fill: var(--colour-primary) !important;
+    transition: color 700ms cubic-bezier(0.83, 0, 0.17, 1),
+      fill 700ms cubic-bezier(0.83, 0, 0.17, 1) !important;
   }
 
-  .filterIcon {
-    height: 55%;
-    width: 55%;
+  .mauveIconButton:hover :deep(svg),
+  .mauveIconButton:hover :deep(.button),
+  .mauveIconButton:hover :deep(.icon),
+  .mauveIconButton:hover :deep(path),
+  .mauveIconButton:hover :deep(circle),
+  .mauveIconButton:hover :deep(rect),
+  .mauveIconButton:hover :deep(polygon),
+  .mauveIconButton:hover :deep(polyline),
+  .mauveIconButton:hover :deep(line) {
+    color: var(--colour-base-100) !important;
+    fill: var(--colour-base-100) !important;
   }
 
   .searchInput {

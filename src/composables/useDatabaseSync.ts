@@ -5,6 +5,7 @@ import { readTextFile, writeTextFile, readFile, exists, remove, BaseDirectory } 
 import Database from '@tauri-apps/plugin-sql'
 import { getItems, addItem, updateItem, deleteItem, getItemRelations, setItemRelations, type Item, type ItemRelation } from '../components/FeatureDatabase.vue'
 import { saveImageAsFile } from '../components/FeatureAssets.vue'
+import { normalizeProgressEntries } from '../utils/types'
 
 export interface SyncData {
   version: string
@@ -25,6 +26,31 @@ export function useDatabaseSync() {
   const isProcessing = ref(false)
   const statusMessage = ref<string>('')
   const oneDriveConnected = ref(false)
+
+  function normalizeImportedItem(item: ItemWithBase64Images): Item {
+    return {
+      ...(item as Item),
+      id: Number(item.id) || 0,
+      title: String(item.title || ''),
+      description: String(item.description || ''),
+      lastUpdated: typeof item.lastUpdated === 'string' && item.lastUpdated
+        ? item.lastUpdated
+        : new Date().toISOString(),
+      coverImage: '',
+      imageSet: [],
+      tags: Array.isArray(item.tags) ? item.tags : [],
+      progress: normalizeProgressEntries(item.progress),
+      ongoing: item.ongoing === true,
+      flagLabel: item.flagLabel === 'downloaded' ? 'downloaded' : 'ongoing',
+      notes: String(item.notes || ''),
+      otherNames: Array.isArray(item.otherNames) ? item.otherNames : [],
+      creators: Array.isArray(item.creators) ? item.creators : [],
+      startDate: typeof item.startDate === 'string' ? item.startDate : '',
+      endDate: typeof item.endDate === 'string' ? item.endDate : '',
+      status: (Number.isFinite(Number(item.status)) ? Number(item.status) : 0) as Item['status'],
+      mediaType: (Number.isFinite(Number(item.mediaType)) ? Number(item.mediaType) : 0) as Item['mediaType'],
+    }
+  }
   // Convert image file to base64 data URL
   async function imagePathToBase64(imagePath: string): Promise<string> {
     // Skip if already base64 or URL
@@ -109,7 +135,7 @@ export function useDatabaseSync() {
       throw new Error('Invalid backup file format')
     }
 
-    const existingItems = await getItems(false)
+    const existingItems: Item[] = await getItems(false)
     for (const item of existingItems) {
       await deleteItem(item)
     }
@@ -117,12 +143,11 @@ export function useDatabaseSync() {
     let imported = 0
     const importedIdToNewId = new Map<number, number>()
     for (const item of syncData.items) {
-      const sourceId = item.id
+      const normalizedItem = normalizeImportedItem(item)
+      const sourceId = normalizedItem.id
       const newItem: Item = {
-        ...item,
+        ...normalizedItem,
         id: 0,
-        coverImage: '',
-        imageSet: []
       }
       const newItemId = await addItem(newItem)
       importedIdToNewId.set(sourceId, newItemId)
@@ -162,7 +187,7 @@ export function useDatabaseSync() {
     }
 
     for (const item of syncData.items) {
-      const sourceId = item.id
+      const sourceId = Number(item.id) || 0
       const newItemId = importedIdToNewId.get(sourceId)
       if (!newItemId) continue
       const mappedRelations: ItemRelation[] = (item.relations ?? [])
@@ -184,11 +209,11 @@ export function useDatabaseSync() {
       throw new Error('Invalid backup file format')
     }
 
-    const existingItems = await getItems(false)
-    const existingByIdAndTitle = new Map(
-      existingItems.map(item => [`${item.id}:${item.title.toLowerCase()}`, item])
+    const existingItems: Item[] = await getItems(false)
+    const existingByIdAndTitle = new Map<string, Item>(
+      existingItems.map((item: Item) => [`${item.id}:${item.title.toLowerCase()}`, item])
     )
-    const existingById = new Map(existingItems.map(item => [item.id, item]))
+    const existingById = new Map<number, Item>(existingItems.map((item: Item) => [item.id, item]))
 
     let added = 0
     let updated = 0
@@ -229,8 +254,8 @@ export function useDatabaseSync() {
         }
 
         await database.execute(
-          `INSERT INTO items (id, title, description, lastUpdated, coverImage, status, mediaType, tags, progress, ongoing, notes, otherNames, creators, startDate, endDate)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`,
+          `INSERT INTO items (id, title, description, lastUpdated, coverImage, status, mediaType, tags, progress, ongoing, notes, otherNames, creators, startDate, endDate, flagLabel)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)`,
           [
             desiredId,
             item.title,
@@ -246,7 +271,8 @@ export function useDatabaseSync() {
             JSON.stringify(item.otherNames),
             JSON.stringify(item.creators),
             item.startDate,
-            item.endDate
+            item.endDate,
+            item.flagLabel === 'downloaded' ? 'downloaded' : 'ongoing'
           ]
         )
 
@@ -267,13 +293,14 @@ export function useDatabaseSync() {
     }
 
     for (const item of syncData.items) {
-      const matchKey = `${item.id}:${item.title.toLowerCase()}`
+      const normalizedItem = normalizeImportedItem(item)
+      const matchKey = `${normalizedItem.id}:${normalizedItem.title.toLowerCase()}`
       const existing = existingByIdAndTitle.get(matchKey)
 
       if (existing) {
-        importedIdToActualId.set(item.id, existing.id)
+        importedIdToActualId.set(normalizedItem.id, existing.id)
         const existingDate = new Date(existing.lastUpdated)
-        const importedDate = new Date(item.lastUpdated)
+        const importedDate = new Date(normalizedItem.lastUpdated)
 
         if (importedDate > existingDate) {
           let coverImagePath = ''
@@ -299,7 +326,7 @@ export function useDatabaseSync() {
           }
 
           const updatedItem: Item = {
-            ...item,
+            ...normalizedItem,
             id: existing.id,
             coverImage: coverImagePath,
             imageSet: imageSetPaths
@@ -309,12 +336,10 @@ export function useDatabaseSync() {
         }
       } else {
         const newItem: Item = {
-          ...item,
-          coverImage: '',
-          imageSet: []
+          ...normalizedItem,
         }
-        const newItemId = await addItemWithId(newItem, item.id)
-        importedIdToActualId.set(item.id, newItemId)
+        const newItemId = await addItemWithId(newItem, normalizedItem.id)
+        importedIdToActualId.set(normalizedItem.id, newItemId)
 
         let coverImagePath = ''
         const imageSetPaths: string[] = []
@@ -352,12 +377,14 @@ export function useDatabaseSync() {
     }
 
     for (const importedItem of syncData.items) {
-      const actualItemId = importedIdToActualId.get(importedItem.id)
+      const importedId = Number(importedItem.id) || 0
+      const actualItemId = importedIdToActualId.get(importedId)
       if (!actualItemId) continue
       const relationRows: ItemRelation[] = (importedItem.relations ?? [])
         .map((rel) => {
-          const mappedTargetId = importedIdToActualId.get(rel.relatedItemId)
-            ?? (existingById.has(rel.relatedItemId) ? rel.relatedItemId : 0)
+          const relatedId = Number(rel.relatedItemId) || 0
+          const mappedTargetId = importedIdToActualId.get(relatedId)
+            ?? (existingById.has(relatedId) ? relatedId : 0)
           return {
             relatedItemId: mappedTargetId,
             description: rel.description ?? ''

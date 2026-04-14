@@ -1,17 +1,60 @@
 <script setup lang="ts">
   import { computed } from 'vue'
+  import SvgIcon from '@jamescoyle/vue-icon'
+  import {
+    mdiDelete,
+    mdiSearchWeb,
+    mdiEye,
+    mdiEyeOff,
+    mdiEyeOutline,
+    mdiChartTimelineVariant,
+    mdiFilterOutline,
+  } from '@mdi/js'
 
-  const { other } = defineProps<{
+  const props = defineProps<{
     text: string
+    icon?: string
+    ariaLabel?: string
     other?: boolean
     glow?: boolean
   }>()
 
-  const buttonColour = computed(() => other ? 'var(--colour-accent)' : 'var(--colour-primary)')
+  const buttonColour = computed(() => props.other ? 'var(--colour-accent)' : 'var(--colour-primary)')
+
+  const iconPath = computed<string | null>(() => {
+    switch (props.icon) {
+      case 'polyline':
+        return mdiChartTimelineVariant
+      case 'delete':
+        return mdiDelete
+      case 'search':
+        return mdiSearchWeb
+      case 'filter':
+        return mdiFilterOutline
+      case 'visibility':
+        return mdiEye
+      case 'visibility_off':
+        return mdiEyeOff
+      case 'remove_red_eye_rounded':
+        return mdiEyeOutline
+      case 'visibility_off_rounded':
+        return mdiEyeOff
+      default:
+        return null
+    }
+  })
 </script>
 
 <template>
-  <button class="button" :class="{ 'button-glow': glow }">
+  <button class="button" :class="{ 'button-glow': glow }" :aria-label="ariaLabel || text">
+    <SvgIcon
+      v-if="iconPath"
+      class="icon"
+      type="mdi"
+      :path="iconPath"
+      aria-hidden="true"
+      focusable="false"
+    />
     <span class="text">{{ text }}</span>
   </button>
 </template>
@@ -23,6 +66,7 @@
     border: var(--border) solid v-bind(buttonColour);
     border-radius: var(--radius-input);
     box-sizing: border-box;
+    color: v-bind(buttonColour) !important;
     cursor: pointer;
     display: inline-flex;
     font-size: var(--font-size-text-button);
@@ -35,11 +79,42 @@
 
   .button > .text {
     background-color: var(--colour-transparent);
-    color: v-bind(buttonColour);
+    color: inherit;
     font-weight: 700;
     position: relative;
     transition: color 700ms cubic-bezier(0.83, 0, 0.17, 1);
     z-index: 1;
+  }
+
+  .button :deep(svg.icon) {
+    color: inherit !important;
+    transition: color 700ms cubic-bezier(0.83, 0, 0.17, 1);
+    z-index: 1;
+    height: 1.2em;
+    width: 1.2em;
+    flex: 0 0 auto;
+  }
+
+  .button :deep(svg.icon) {
+    color: inherit !important;
+    fill: currentColor !important;
+    transition: fill 700ms cubic-bezier(0.83, 0, 0.17, 1), color 700ms cubic-bezier(0.83, 0, 0.17, 1);
+  }
+
+  .button :deep(svg.icon *),
+  .button :deep(svg.icon path),
+  .button :deep(svg.icon circle),
+  .button :deep(svg.icon rect),
+  .button :deep(svg.icon polygon),
+  .button :deep(svg.icon polyline),
+  .button :deep(svg.icon line) {
+    fill: currentColor !important;
+    transition: fill 700ms cubic-bezier(0.83, 0, 0.17, 1);
+  }
+
+  .button :deep(svg.icon [stroke]:not([stroke='none'])) {
+    stroke: currentColor !important;
+    transition: stroke 700ms cubic-bezier(0.83, 0, 0.17, 1);
   }
 
   .button::after {
@@ -74,7 +149,7 @@
     box-shadow: 0 0 2vw 0.5vw color-mix(in srgb, v-bind(buttonColour) 50%, transparent);
   }
 
-  .button:hover > .text {
+  .button:hover {
     color: var(--colour-base-100);
   }
 

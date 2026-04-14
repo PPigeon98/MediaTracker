@@ -29,6 +29,7 @@ export function useItemOperations() {
       selectedTags: any[]
       progress: any[]
       ongoing: boolean
+      flagLabel: 'ongoing' | 'downloaded'
       notes: string
       otherNames: string
       creators: string
@@ -51,6 +52,7 @@ export function useItemOperations() {
         tags: formItem.selectedTags,
         progress: formItem.progress,
         ongoing: formItem.ongoing,
+        flagLabel: formItem.flagLabel,
         imageSet: [],
         notes: formItem.notes,
         otherNames: splitLines(formItem.otherNames),
@@ -99,6 +101,7 @@ export function useItemOperations() {
       tags: formItem.selectedTags,
       progress: formItem.progress,
       ongoing: formItem.ongoing,
+      flagLabel: formItem.flagLabel,
       imageSet: savedImageSet,
       notes: formItem.notes,
       otherNames: splitLines(formItem.otherNames),
