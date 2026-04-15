@@ -9,6 +9,13 @@ export function useItemOperations() {
   const router = useRouter()
   const deletionQueue = ref<string[]>([])
 
+  function toTitleCase(value: string): string {
+    return value
+      .trim()
+      .toLowerCase()
+      .replace(/\b([a-z])/g, (char) => char.toUpperCase())
+  }
+
   function handleQueueDeletion(imageSrc: string) {
     deletionQueue.value.push(imageSrc)
   }
@@ -36,16 +43,21 @@ export function useItemOperations() {
       startDate: string
       endDate: string
     },
-    relations: ItemRelation[]
+    relations: ItemRelation[],
+    options?: {
+      bypassTitleNormalization?: boolean
+    }
   ) {
     let itemId = currentItem.id
+    const shouldBypassNormalization = options?.bypassTitleNormalization === true
+    const normalizedTitle = shouldBypassNormalization ? formItem.title.trim() : toTitleCase(formItem.title)
 
     if (itemId === 0) {
       const newItem: Item = {
         id: 0,
         coverImage: '',
         status: formItem.statusValue,
-        title: formItem.title,
+        title: normalizedTitle,
         description: formItem.description,
         lastUpdated: new Date().toISOString(),
         mediaType: formItem.mediaTypeValue,
@@ -94,7 +106,7 @@ export function useItemOperations() {
       id: currentItem.id,
       coverImage: coverImagePath,
       status: formItem.statusValue,
-      title: formItem.title,
+      title: normalizedTitle,
       description: formItem.description,
       lastUpdated: new Date().toISOString(),
       mediaType: formItem.mediaTypeValue,

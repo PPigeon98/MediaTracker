@@ -1,10 +1,11 @@
 <script setup lang="ts">
   import * as d3 from 'd3'
-  import { onMounted, onUnmounted, ref } from 'vue'
+  import { onMounted, onUnmounted, ref, watch } from 'vue'
   import { useRouter } from 'vue-router'
   import BaseButtonBack from './BaseButtonBack.vue'
   import { getItems, getItemRelations, type Item } from './FeatureDatabase.vue'
   import { typeVariableNames } from '../utils/types'
+  import { useStatusColors } from '../composables/useStatusColors'
 
   type NodeDatum = {
     id: number;
@@ -13,6 +14,7 @@
     lines: string[];
     radius: number;
     color: string;
+    borderColor: string;
   }
 
   type LinkDatum = {
@@ -24,6 +26,7 @@
 
   const router = useRouter()
   const graphRoot = ref<HTMLDivElement | null>(null)
+  const { colorForStatus, statusColors } = useStatusColors()
   let simulation: d3.Simulation<d3.SimulationNodeDatum, undefined> | null = null
 
   function wrapWords(text: string, maxCharsPerLine = 10, maxLines = 3): string[] {
@@ -75,7 +78,8 @@
         shortLabel: label.slice(0, 14),
         lines,
         radius: Math.max(18, Math.min(48, Math.max(widthRadius, heightRadius))),
-        color: `var(--colour-${typeVariableNames[item.mediaType] ?? 'other'})`
+        color: `var(--colour-${typeVariableNames[item.mediaType] ?? 'other'})`,
+        borderColor: colorForStatus(item.status),
       }
     })
 
@@ -112,11 +116,11 @@
     const links = linksInput.map((d) => ({ ...d }))
 
     simulation = d3.forceSimulation(nodes as d3.SimulationNodeDatum[])
-      .force('link', d3.forceLink(links as d3.SimulationLinkDatum<d3.SimulationNodeDatum>[]).id((d: any) => d.id).distance(70))
-      .force('charge', d3.forceManyBody().strength(-120))
+      .force('link', d3.forceLink(links as d3.SimulationLinkDatum<d3.SimulationNodeDatum>[]).id((d: any) => d.id).distance(78))
+      .force('charge', d3.forceManyBody().strength(-135))
       .force('x', d3.forceX().strength(0.03))
       .force('y', d3.forceY().strength(0.03))
-      .force('collide', d3.forceCollide(14))
+      .force('collide', d3.forceCollide(45))
 
     const svg = d3.create('svg')
       .attr('width', width)
@@ -137,13 +141,13 @@
       .style('transition', 'none')
 
     const node = viewport.append('g')
-      .attr('stroke', '#11111b')
       .attr('stroke-width', 1.4)
       .selectAll('circle')
       .data(nodes)
       .join('circle')
       .attr('r', (d: NodeDatum) => d.radius)
       .attr('fill', (d: NodeDatum) => d.color)
+      .attr('stroke', (d: NodeDatum) => d.borderColor)
       .style('cursor', 'pointer')
       .style('transition', 'none')
 
@@ -195,7 +199,7 @@
     node.call(drag as any)
 
     const zoom = d3.zoom<SVGSVGElement, any>()
-      .scaleExtent([0.2, 4])
+      .scaleExtent([0, 4])
       .on('zoom', (event) => {
         viewport.attr('transform', event.transform.toString())
       })
@@ -234,6 +238,10 @@
     await refreshGraph()
     window.addEventListener('resize', handleResize)
   })
+
+  watch(statusColors, () => {
+    refreshGraph()
+  }, { deep: true })
 
   onUnmounted(() => {
     window.removeEventListener('resize', handleResize)

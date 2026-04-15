@@ -51,4 +51,10 @@
     height: var(--spacing-button-small);
     min-width: 8vw;
   }
+
+  @media (max-width: 40rem) {
+    .showMoreButton {
+      padding: calc(var(--padding-button-block) * 2) calc(var(--padding-button-inline) * 2);
+    }
+  }
 </style>

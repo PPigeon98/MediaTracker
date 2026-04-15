@@ -5,6 +5,7 @@
     placeholder?: string
     modelValue?: string | number
     type?: string
+    list?: string
   }>()
 
   const emit = defineEmits<{
@@ -19,6 +20,7 @@
     :type="type"
     :placeholder="placeholder"
     :value="modelValue"
+    :list="list"
     @input="onInput"
     class="input"
   />

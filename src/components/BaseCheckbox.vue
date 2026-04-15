@@ -79,6 +79,7 @@
     .input {
       height: max(3.25vw, 1.15rem);
       width: max(3.25vw, 1.15rem);
+      border-radius: max(calc(var(--border) * 2), 0.25rem);
     }
   }
 </style>

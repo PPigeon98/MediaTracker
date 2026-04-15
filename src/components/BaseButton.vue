@@ -66,7 +66,7 @@
     border: var(--border) solid v-bind(buttonColour);
     border-radius: var(--radius-input);
     box-sizing: border-box;
-    color: v-bind(buttonColour) !important;
+    color: v-bind(buttonColour);
     cursor: pointer;
     display: inline-flex;
     font-size: var(--font-size-text-button);
@@ -98,7 +98,6 @@
   .button :deep(svg.icon) {
     color: inherit !important;
     fill: currentColor !important;
-    transition: fill 700ms cubic-bezier(0.83, 0, 0.17, 1), color 700ms cubic-bezier(0.83, 0, 0.17, 1);
   }
 
   .button :deep(svg.icon *),
@@ -109,12 +108,10 @@
   .button :deep(svg.icon polyline),
   .button :deep(svg.icon line) {
     fill: currentColor !important;
-    transition: fill 700ms cubic-bezier(0.83, 0, 0.17, 1);
   }
 
   .button :deep(svg.icon [stroke]:not([stroke='none'])) {
     stroke: currentColor !important;
-    transition: stroke 700ms cubic-bezier(0.83, 0, 0.17, 1);
   }
 
   .button::after {

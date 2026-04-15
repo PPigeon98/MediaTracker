@@ -4,6 +4,7 @@
   import { useLocalStorage } from '../composables/useLocalStorage'
   import { useCustomTags } from '../composables/useCustomTags'
   import { useTypeColors } from '../composables/useTypeColors'
+  import { useStatusColors } from '../composables/useStatusColors'
   import BaseButtonBack from './BaseButtonBack.vue'
   import BaseButton from './BaseButton.vue'
   import BaseTextInput from './BaseTextInput.vue'
@@ -69,6 +70,7 @@
     },
   })
   const { typeColors, typeColorOptions } = useTypeColors()
+  const { statusColors, statusColorOptions } = useStatusColors()
   const { sortedCustomTags, addTag, removeTag } = useCustomTags()
   const newTag = ref('')
 
@@ -139,6 +141,16 @@
         <label v-for="option in typeColorOptions" :key="option.key" class="typeColorRow">
           <span>{{ option.label }}</span>
           <input v-model="typeColors[option.key]" type="color" class="typeColorInput" />
+        </label>
+      </div>
+    </div>
+
+    <div class="settingsSection">
+      <h2>Status Colors (Graph Border)</h2>
+      <div class="typeColorList">
+        <label v-for="option in statusColorOptions" :key="option.key" class="typeColorRow">
+          <span>{{ option.label }}</span>
+          <input v-model="statusColors[option.key]" type="color" class="typeColorInput" />
         </label>
       </div>
     </div>

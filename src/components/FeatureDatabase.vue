@@ -302,26 +302,93 @@
 
   export async function getItemRelations(itemId: number): Promise<ItemRelation[]> {
     const database = await getDb();
-    const result = await database.select<{ relatedItemId: number; description: string }[]>(
+    const outgoing = await database.select<{ relatedItemId: number; description: string }[]>(
       'SELECT relatedItemId, description FROM item_relations WHERE itemId = $1 ORDER BY id',
       [itemId]
     );
-    return result.map((row) => ({
-      relatedItemId: Number(row.relatedItemId),
-      description: row.description ?? ''
-    }));
+
+    const incoming = await database.select<{ sourceItemId: number; description: string }[]>(
+      'SELECT itemId as sourceItemId, description FROM item_relations WHERE relatedItemId = $1 ORDER BY id',
+      [itemId]
+    );
+
+    function normalizeReason(reason: string): string {
+      return reason.trim().toLowerCase();
+    }
+
+    function reciprocalReason(reason: string): string {
+      const normalized = normalizeReason(reason);
+      if (normalized === 'prequel') return 'sequel';
+      if (normalized === 'sequel') return 'prequel';
+      return normalized;
+    }
+
+    const relationMap = new Map<number, ItemRelation>();
+
+    for (const row of incoming) {
+      const relatedItemId = Number(row.sourceItemId);
+      if (!relatedItemId || relatedItemId === itemId) continue;
+      relationMap.set(relatedItemId, {
+        relatedItemId,
+        description: reciprocalReason(row.description ?? '')
+      });
+    }
+
+    for (const row of outgoing) {
+      const relatedItemId = Number(row.relatedItemId);
+      if (!relatedItemId || relatedItemId === itemId) continue;
+      relationMap.set(relatedItemId, {
+        relatedItemId,
+        description: normalizeReason(row.description ?? '')
+      });
+    }
+
+    return Array.from(relationMap.values());
   }
 
   export async function setItemRelations(itemId: number, relations: ItemRelation[]): Promise<void> {
     const database = await getDb();
+    const existingRelations = await database.select<{ relatedItemId: number }[]>(
+      'SELECT relatedItemId FROM item_relations WHERE itemId = $1',
+      [itemId]
+    );
+
+    function normalizeReason(reason: string): string {
+      return reason.trim().toLowerCase();
+    }
+
+    function reciprocalReason(reason: string): string {
+      const normalized = normalizeReason(reason);
+      if (normalized === 'prequel') return 'sequel';
+      if (normalized === 'sequel') return 'prequel';
+      return normalized;
+    }
+
     await database.execute('DELETE FROM item_relations WHERE itemId = $1', [itemId]);
+
+    for (const row of existingRelations) {
+      if (!row.relatedItemId || row.relatedItemId === itemId) continue;
+      await database.execute(
+        'DELETE FROM item_relations WHERE itemId = $1 AND relatedItemId = $2',
+        [row.relatedItemId, itemId]
+      );
+    }
+
     for (const relation of relations) {
       if (!relation.relatedItemId || relation.relatedItemId === itemId) {
         continue;
       }
+
+      const forwardReason = normalizeReason(relation.description);
+      const backwardReason = reciprocalReason(forwardReason);
+
       await database.execute(
         'INSERT OR REPLACE INTO item_relations (itemId, relatedItemId, description) VALUES ($1, $2, $3)',
-        [itemId, relation.relatedItemId, relation.description.trim()]
+        [itemId, relation.relatedItemId, forwardReason]
+      );
+      await database.execute(
+        'INSERT OR REPLACE INTO item_relations (itemId, relatedItemId, description) VALUES ($1, $2, $3)',
+        [relation.relatedItemId, itemId, backwardReason]
       );
     }
   }

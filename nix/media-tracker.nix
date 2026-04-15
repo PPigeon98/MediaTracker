@@ -12,6 +12,7 @@
   gdk-pixbuf,
   glib,
   gobject-introspection,
+  gst_all_1,
   gtk3,
   openssl,
   pango,
@@ -41,7 +42,7 @@ let
   };
   npmDeps = fetchNpmDeps {
     inherit src;
-    hash = "sha256-EK6oQXiJy/CcZWtKRANBam+QJhKb8rRs0p+XSKhgqEY=";
+    hash = "sha256-NEA6K0jpeRgUAmE4oaj1HN9F3iKZt/6apxgg/ZTKC78=";
   };
   cargoLockFile = ../src-tauri/Cargo.lock;
 in
@@ -68,6 +69,9 @@ rustPlatform.buildRustPackage {
   buildInputs = [
     gtk3
     webkitgtk_4_1
+    gst_all_1.gstreamer
+    gst_all_1.gst-plugins-base
+    gst_all_1.gst-plugins-good
     libsoup_3
     openssl
     sqlite

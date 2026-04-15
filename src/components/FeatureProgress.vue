@@ -110,7 +110,7 @@
         placeholder="Progress type"
         :model-value="String(prog.type ?? '')"
         @update:model-value="(val) => updateProgress(index, 'type', String(val))"
-        class="typeField"
+        class="typeField customTypeField"
       />
       <BaseSelect
         v-else
@@ -121,7 +121,7 @@
       />
       <BaseButton text="" icon="delete" aria-label="Remove progress" @click="removeProgress(index)" class="removeProgressButton mauveIconButton" />
     </div>
-    <BaseButton text="Add Progress" @click="addProgress()" />
+    <BaseButton text="Add Progress" @click="addProgress()" class="addProgressButton" />
   </div>
 </template>
 
@@ -135,6 +135,18 @@
 
   .progressField {
     min-width: unset;
+  }
+
+  .customTypeField {
+    flex: 0 0 7rem;
+    max-width: 7rem;
+    min-width: 0;
+    width: 5rem;
+  }
+
+  .customTypeField :deep(.input) {
+    min-width: 0;
+    width: 100%;
   }
 
   .removeProgressButton {
@@ -162,8 +174,6 @@
   .mauveIconButton :deep(line) {
     color: var(--colour-primary) !important;
     fill: var(--colour-primary) !important;
-    transition: color 700ms cubic-bezier(0.83, 0, 0.17, 1),
-      fill 700ms cubic-bezier(0.83, 0, 0.17, 1) !important;
   }
 
   .mauveIconButton:hover :deep(svg),
@@ -179,11 +189,42 @@
     fill: var(--colour-base-100) !important;
   }
 
+  .addProgressButton {
+    width: 100%;
+  }
+
   @media (max-width: 40rem) {
+    .progressItem {
+      flex-wrap: nowrap;
+      gap: calc(var(--gap-section) / 5);
+    }
+
+    .progressField,
+    .typeField {
+      flex: 1 1 0;
+      min-width: 0;
+    }
+
+    .progressItem > span,
+    .progressItem {
+      font-size: calc(var(--font-size-body) * 0.92);
+    }
+
+    .progressField {
+      max-width: 4.8rem;
+    }
+
+    .typeField {
+      max-width: 7.2rem;
+    }
+
     .removeProgressButton,
     .toggleVisibilityButton {
-      width: 20vw;
-      height: 5vw;
+      width: 3.5vw;
+      height: 3.5vw;
+      padding: 0;
+      min-width: 1.9rem;
+      min-height: 1.9rem;
     }
   }
 </style>

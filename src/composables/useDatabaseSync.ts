@@ -6,6 +6,7 @@ import Database from '@tauri-apps/plugin-sql'
 import { getItems, addItem, updateItem, deleteItem, getItemRelations, setItemRelations, type Item, type ItemRelation } from '../components/FeatureDatabase.vue'
 import { saveImageAsFile } from '../components/FeatureAssets.vue'
 import { normalizeProgressEntries } from '../utils/types'
+import { useCustomTags } from './useCustomTags'
 
 export interface SyncData {
   version: string
@@ -26,6 +27,25 @@ export function useDatabaseSync() {
   const isProcessing = ref(false)
   const statusMessage = ref<string>('')
   const oneDriveConnected = ref(false)
+  const { customTags } = useCustomTags()
+
+  function mergeImportedTagsIntoCustomTagList(items: ItemWithBase64Images[]): void {
+    const merged = new Set<string>(
+      customTags.value
+        .map(tag => String(tag ?? '').trim().toLowerCase())
+        .filter(Boolean)
+    )
+
+    for (const item of items) {
+      if (!Array.isArray(item.tags)) continue
+      for (const tag of item.tags) {
+        const normalizedTag = String(tag ?? '').trim().toLowerCase()
+        if (normalizedTag) merged.add(normalizedTag)
+      }
+    }
+
+    customTags.value = Array.from(merged)
+  }
 
   function normalizeImportedItem(item: ItemWithBase64Images): Item {
     return {
@@ -198,6 +218,8 @@ export function useDatabaseSync() {
         .filter((rel) => rel.relatedItemId > 0)
       await setItemRelations(newItemId, mappedRelations)
     }
+
+    mergeImportedTagsIntoCustomTagList(syncData.items)
 
     return imported
   }
@@ -394,6 +416,8 @@ export function useDatabaseSync() {
 
       await setItemRelations(actualItemId, relationRows)
     }
+
+    mergeImportedTagsIntoCustomTagList(syncData.items)
 
     return { added, updated }
   }
