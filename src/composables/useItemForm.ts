@@ -25,12 +25,20 @@ export function useItemForm() {
     endDate: '',
   })
 
-  function itemToFormItem(dbItem: Item, imageSrcs: string[], coverImageSrc: string) {
+  function itemToFormItem(
+    dbItem: Item,
+    imageSrcs: string[],
+    coverImageSrc: string,
+    options?: { useDefaultStatus?: boolean }
+  ) {
+    const statusValue = options?.useDefaultStatus === true
+      ? defaultStatus.value
+      : dbItem.status
     return {
       title: dbItem.title,
       description: dbItem.description,
       mediaTypeValue: dbItem.mediaType,
-      statusValue: dbItem.status,
+      statusValue,
       selectedTags: dbItem.tags,
       progress: dbItem.progress,
       notes: dbItem.notes,

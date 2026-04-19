@@ -77,7 +77,9 @@
         const decoded = decodeURIComponent(paramStr)
         const apiItem: Item = JSON.parse(decoded)
         if (apiItem.id === -1) {
-          item.value = itemToFormItem(apiItem, apiItem.imageSet, apiItem.coverImage)
+          item.value = itemToFormItem(apiItem, apiItem.imageSet, apiItem.coverImage, {
+            useDefaultStatus: true,
+          })
           return
         }
       } catch (e) {
