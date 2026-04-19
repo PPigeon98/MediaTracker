@@ -42,7 +42,7 @@ let
   };
   npmDeps = fetchNpmDeps {
     inherit src;
-    hash = "sha256-NEA6K0jpeRgUAmE4oaj1HN9F3iKZt/6apxgg/ZTKC78=";
+    hash = "sha256-802ggVgjHvS4ONtAXCEVY7GmKKN/sSOJlZxC1e8V32Q=";
   };
   cargoLockFile = ../src-tauri/Cargo.lock;
 in

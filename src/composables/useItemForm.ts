@@ -1,15 +1,17 @@
 import { ref } from 'vue'
 import { mediaType, status, type Item, type progress, type Tag, mediaTypeLabels, statusLabels, splitLines } from '../utils/types'
 import { useSelectOptions } from './useSelectOptions'
+import { useNewItemDefaults } from './useNewItemDefaults'
 import { getImageSrc } from '../components/FeatureAssets.vue'
 import { getItemImages } from '../components/FeatureDatabase.vue'
 
 export function useItemForm() {
+  const { defaultMediaType, defaultStatus } = useNewItemDefaults()
   const item = ref({
     title: '',
     description: '',
-    mediaTypeValue: mediaType.anime,
-    statusValue: status.tracking,
+    mediaTypeValue: defaultMediaType.value,
+    statusValue: defaultStatus.value,
     selectedTags: [] as Tag[],
     progress: [] as progress[],
     imageSet: [] as string[],

@@ -5,9 +5,13 @@
   import { useCustomTags } from '../composables/useCustomTags'
   import { useTypeColors } from '../composables/useTypeColors'
   import { useStatusColors } from '../composables/useStatusColors'
+  import { useNewItemDefaults } from '../composables/useNewItemDefaults'
+  import { useSelectOptions } from '../composables/useSelectOptions'
+  import { mediaType, mediaTypeLabels, status, statusLabels } from '../utils/types'
   import BaseButtonBack from './BaseButtonBack.vue'
   import BaseButton from './BaseButton.vue'
   import BaseTextInput from './BaseTextInput.vue'
+  import BaseSelect from './BaseSelect.vue'
   import FeatureSync from './FeatureSync.vue'
 
   type ApiKeys = {
@@ -71,6 +75,9 @@
   })
   const { typeColors, typeColorOptions } = useTypeColors()
   const { statusColors, statusColorOptions } = useStatusColors()
+  const { defaultMediaType, defaultStatus } = useNewItemDefaults()
+  const { selectOptions: newItemMediaTypeOptions } = useSelectOptions(mediaType, mediaTypeLabels)
+  const { selectOptions: newItemStatusOptions } = useSelectOptions(status, statusLabels)
   const { sortedCustomTags, addTag, removeTag } = useCustomTags()
   const newTag = ref('')
 
@@ -82,6 +89,14 @@
   async function handleRemoveTag(tag: string) {
     await removeTagFromAllItems(tag)
     removeTag(tag)
+  }
+
+  function setDefaultMediaType(val: string | number) {
+    defaultMediaType.value = Number(val) as mediaType
+  }
+
+  function setDefaultStatus(val: string | number) {
+    defaultStatus.value = Number(val) as status
   }
 </script>
 
@@ -133,6 +148,26 @@
     <div class="settingsSection">
       <h2>Database Sync</h2>
       <FeatureSync />
+    </div>
+
+    <div class="settingsSection">
+      <h2>New item defaults</h2>
+      <div class="defaultsRow">
+        <span class="defaultsLabel">Media type</span>
+        <BaseSelect
+          :options="newItemMediaTypeOptions"
+          :model-value="defaultMediaType"
+          @update:model-value="setDefaultMediaType"
+        />
+      </div>
+      <div class="defaultsRow">
+        <span class="defaultsLabel">Status</span>
+        <BaseSelect
+          :options="newItemStatusOptions"
+          :model-value="defaultStatus"
+          @update:model-value="setDefaultStatus"
+        />
+      </div>
     </div>
 
     <div class="settingsSection">
@@ -253,5 +288,16 @@
     align-items: center;
     display: flex;
     justify-content: space-between;
+  }
+
+  .defaultsRow {
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--gap-section) / 4);
+    width: 100%;
+  }
+
+  .defaultsLabel {
+    font-size: calc(var(--font-size-body) * 0.95);
   }
 </style>
